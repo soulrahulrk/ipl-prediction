@@ -367,18 +367,44 @@ Conclusion:
 
 ## Publish To GitHub
 
-If you want to publish this project under your account (`soulrahulrk`), create a repository first (for example: `ipl-prediction`) and then run:
+Current remote repository:
+- `https://github.com/soulrahulrk/ipl-prediction`
+
+To push future updates:
 
 ```powershell
-git init
 git add .
-git commit -m "Initial IPL predictor project"
-git branch -M main
-git remote add origin https://github.com/soulrahulrk/ipl-prediction.git
+git commit -m "Update project"
 git push -u origin main
 ```
 
 If prompted, use GitHub credentials/token with repo write access.
+
+---
+
+## Repository File Management
+
+To keep the project clean, remove generated runtime folders regularly:
+
+```powershell
+Remove-Item -LiteralPath "__pycache__" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath ".pytest_cache" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath "catboost_info" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath "logs" -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+Folders you should treat as generated/temporary:
+- `__pycache__/`
+- `.pytest_cache/`
+- `catboost_info/`
+- `logs/`
+
+Persistent project folders:
+- `data/ipl_csv2/` (raw source data)
+- `data/processed/` (generated features/support tables)
+- `models/` (active model artifacts)
+- `scripts/` (pipeline and training commands)
+- `ipl_predictor/` (shared core logic)
 
 ---
 
