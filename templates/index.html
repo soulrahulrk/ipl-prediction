@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPL Live Predictor</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">IPL Live</p>
+      <h1>Score + Win Predictor</h1>
+      <p class="subtitle">Fill the live match state and get an instant forecast.</p>
+    </header>
+
+    {% if errors %}
+      <section class="card errors">
+        <h2>Fix these inputs</h2>
+        <ul>
+          {% for err in errors %}
+            <li>{{ err }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if prediction %}
+      <section class="card result">
+        <div>
+          <p class="label">Predicted Total</p>
+          <p class="value">{{ prediction.predicted_total }}</p>
+        </div>
+        <div>
+          <p class="label">Win Probability ({{ prediction.batting_team }})</p>
+          <p class="value">{{ prediction.win_prob_pct }}</p>
+        </div>
+        <div>
+          <p class="label">Win Probability Band</p>
+          <p class="value">{{ prediction.win_prob_band }}</p>
+        </div>
+        <div>
+          <p class="label">Phase</p>
+          <p class="value">{{ prediction.phase }}</p>
+        </div>
+        <div>
+          <p class="label">Venue Par Score</p>
+          <p class="value">{{ prediction.venue_par_score }}</p>
+        </div>
+        <div>
+          <p class="label">Runs vs Par</p>
+          <p class="value">{{ prediction.runs_vs_par }}</p>
+        </div>
+        {% if prediction.target_remaining %}
+          <div>
+            <p class="label">Target Remaining</p>
+            <p class="value">{{ prediction.target_remaining }}</p>
+          </div>
+        {% endif %}
+        {% if prediction.required_minus_current_rr %}
+          <div>
+            <p class="label">Req RR minus CRR</p>
+            <p class="value">{{ prediction.required_minus_current_rr }}</p>
+          </div>
+        {% endif %}
+        <div>
+          <p class="label">Projected Range</p>
+          <p class="value">{{ prediction.projected_range }}</p>
+        </div>
+        <div>
+          <p class="label">Simulated Median</p>
+          <p class="value">{{ prediction.simulated_median }}</p>
+        </div>
+        <div>
+          <p class="label">Collapse Risk</p>
+          <p class="value">{{ prediction.collapse_risk_pct }}</p>
+        </div>
+        <div>
+          <p class="label">Big Finish Chance</p>
+          <p class="value">{{ prediction.big_finish_chance_pct }}</p>
+        </div>
+        <div>
+          <p class="label">Temperature (C)</p>
+          <p class="value">{{ prediction.temperature_c }}</p>
+        </div>
+        <div>
+          <p class="label">Dew Risk</p>
+          <p class="value">{{ prediction.dew_risk }}</p>
+        </div>
+        <div>
+          <p class="label">Model Note</p>
+          <p class="value">{{ prediction.model_explanation }}</p>
+        </div>
+        {% if prediction.current_minus_required_rr %}
+          <div>
+            <p class="label">Current RR minus Req RR</p>
+            <p class="value">{{ prediction.current_minus_required_rr }}</p>
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <form method="post" class="card form">
+      <div class="grid">
+        <label>
+          Season
+          <input name="season" value="{{ form_data.get('season', '') }}" placeholder="2025 or 2020/21" required>
+        </label>
+        <label>
+          Venue
+          <input name="venue" value="{{ form_data.get('venue', '') }}" placeholder="Wankhede Stadium" required>
+        </label>
+        <label>
+          Batting Team
+          <input name="batting_team" value="{{ form_data.get('batting_team', '') }}" placeholder="Mumbai Indians" required>
+        </label>
+        <label>
+          Bowling Team
+          <input name="bowling_team" value="{{ form_data.get('bowling_team', '') }}" placeholder="Chennai Super Kings" required>
+        </label>
+        <label>
+          Current Striker
+          <input name="striker" value="{{ form_data.get('striker', '') }}" placeholder="Rohit Sharma">
+        </label>
+        <label>
+          Current Bowler
+          <input name="bowler" value="{{ form_data.get('bowler', '') }}" placeholder="Jasprit Bumrah">
+        </label>
+        <label>
+          Toss Winner
+          <input name="toss_winner" value="{{ form_data.get('toss_winner', '') }}" placeholder="Optional">
+        </label>
+        <label>
+          Toss Decision
+          <select name="toss_decision">
+            <option value="" {% if not form_data.get('toss_decision') %}selected{% endif %}>Optional</option>
+            <option value="bat" {% if form_data.get('toss_decision') == 'bat' %}selected{% endif %}>Bat</option>
+            <option value="field" {% if form_data.get('toss_decision') == 'field' %}selected{% endif %}>Field</option>
+          </select>
+        </label>
+        <label>
+          Innings
+          <select name="innings" required>
+            <option value="1" {% if form_data.get('innings', '1') == '1' %}selected{% endif %}>1</option>
+            <option value="2" {% if form_data.get('innings') == '2' %}selected{% endif %}>2</option>
+          </select>
+        </label>
+        <label>
+          Runs
+          <input name="runs" value="{{ form_data.get('runs', '') }}" placeholder="102" required>
+        </label>
+        <label>
+          Wickets
+          <input name="wickets" value="{{ form_data.get('wickets', '') }}" placeholder="3" required>
+        </label>
+        <label>
+          Overs Bowled
+          <input name="overs" value="{{ form_data.get('overs', '') }}" placeholder="12.3" required>
+        </label>
+        <label>
+          Runs Last 5 Overs
+          <input name="runs_last_5" value="{{ form_data.get('runs_last_5', '') }}" placeholder="Optional">
+        </label>
+        <label>
+          Wickets Last 5 Overs
+          <input name="wickets_last_5" value="{{ form_data.get('wickets_last_5', '') }}" placeholder="Optional">
+        </label>
+        <label>
+          First Innings Total
+          <input name="first_innings_total" value="{{ form_data.get('first_innings_total', '') }}" placeholder="Required for innings 2">
+        </label>
+        <label>
+          Use Live Weather
+          <select name="use_live_weather">
+            <option value="true" {% if form_data.get('use_live_weather', 'true') == 'true' %}selected{% endif %}>Yes</option>
+            <option value="false" {% if form_data.get('use_live_weather') == 'false' %}selected{% endif %}>No</option>
+          </select>
+        </label>
+      </div>
+
+      <details class="advanced">
+        <summary>Advanced form inputs (optional)</summary>
+        <div class="grid">
+          <label>
+            Batting Team Form (0-1)
+            <input name="batting_team_form" value="{{ form_data.get('batting_team_form', '') }}" placeholder="Auto">
+          </label>
+          <label>
+            Bowling Team Form (0-1)
+            <input name="bowling_team_form" value="{{ form_data.get('bowling_team_form', '') }}" placeholder="Auto">
+          </label>
+          <label>
+            Batting Team Venue Form (0-1)
+            <input name="batting_team_venue_form" value="{{ form_data.get('batting_team_venue_form', '') }}" placeholder="Auto">
+          </label>
+          <label>
+            Bowling Team Venue Form (0-1)
+            <input name="bowling_team_venue_form" value="{{ form_data.get('bowling_team_venue_form', '') }}" placeholder="Auto">
+          </label>
+          <label>
+            Striker SR (optional)
+            <input name="striker_form_sr" value="{{ form_data.get('striker_form_sr', '') }}" placeholder="Auto">
+          </label>
+          <label>
+            Bowler Economy (optional)
+            <input name="bowler_form_econ" value="{{ form_data.get('bowler_form_econ', '') }}" placeholder="Auto">
+          </label>
+        </div>
+      </details>
+
+      <button type="submit" class="cta">Predict</button>
+    </form>
+  </main>
+</body>
+</html>

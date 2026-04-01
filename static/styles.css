@@ -1,0 +1,156 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
+
+:root {
+  --bg: #0b0c10;
+  --bg-accent: #121b2b;
+  --card: #161a23;
+  --text: #f7f3e9;
+  --muted: #b7b4ae;
+  --accent: #e95d0f;
+  --accent-soft: #ffb347;
+  --border: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at top, #1e2742, var(--bg));
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+.hero {
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  color: var(--accent-soft);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(233, 93, 15, 0.18), rgba(18, 27, 43, 0.8));
+}
+
+.result .label {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.result .value {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.errors h2 {
+  margin-top: 0;
+  color: var(--accent-soft);
+}
+
+.errors ul {
+  padding-left: 20px;
+}
+
+.form .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+input,
+select {
+  background: var(--bg-accent);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+input::placeholder {
+  color: rgba(247, 243, 233, 0.4);
+}
+
+.advanced {
+  margin-top: 16px;
+}
+
+.advanced summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent-soft);
+  margin-bottom: 12px;
+}
+
+.cta {
+  margin-top: 24px;
+  background: linear-gradient(120deg, var(--accent), var(--accent-soft));
+  color: #120c08;
+  border: none;
+  padding: 14px 22px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(233, 93, 15, 0.28);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 32px 18px 60px;
+  }
+
+  .result .value {
+    font-size: 28px;
+  }
+}
