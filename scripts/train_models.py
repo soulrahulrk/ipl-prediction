@@ -20,11 +20,13 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from ipl_predictor import (
+    ACTIVE_IPL_TEAMS_2026,
     CATEGORICAL_FEATURES,
     MODELS_DIR,
     NUMERIC_FEATURES,
     PROCESSED_DIR,
     SCORE_UNCERTAINTY_PATH,
+    season_to_year,
 )
 
 
@@ -36,6 +38,7 @@ MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 CATEGORICAL = CATEGORICAL_FEATURES
 NUMERIC = NUMERIC_FEATURES
+MIN_ACTIVE_TRAIN_YEAR = 2024
 
 
 def build_preprocessor() -> ColumnTransformer:
@@ -94,9 +97,41 @@ def split_by_season_three(
     return train_df, calib_df, test_df
 
 
+def filter_current_ipl_training_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, object]]:
+    scoped = df.copy()
+    scoped["season_key"] = scoped["season"].apply(season_to_year)
+    scoped = scoped[scoped["season_key"].notna()].copy()
+    scoped["season_key"] = scoped["season_key"].astype(int)
+
+    before_rows = len(scoped)
+    scoped = scoped[
+        scoped["batting_team"].isin(ACTIVE_IPL_TEAMS_2026)
+        & scoped["bowling_team"].isin(ACTIVE_IPL_TEAMS_2026)
+    ].copy()
+
+    max_season = int(scoped["season_key"].max()) if not scoped.empty else MIN_ACTIVE_TRAIN_YEAR
+    min_season = max(MIN_ACTIVE_TRAIN_YEAR, max_season - 2)
+    scoped = scoped[scoped["season_key"] >= min_season].copy()
+
+    if scoped.empty:
+        raise ValueError("No rows left after active-team and season filters.")
+
+    summary = {
+        "rows_before_filter": before_rows,
+        "rows_after_filter": len(scoped),
+        "min_season_included": min_season,
+        "max_season_included": int(scoped["season_key"].max()),
+        "teams": sorted(
+            set(scoped["batting_team"].dropna().astype(str))
+            | set(scoped["bowling_team"].dropna().astype(str))
+        ),
+    }
+    return scoped, summary
+
+
 def _safe_log_loss(y_true: pd.Series, probs: np.ndarray) -> float:
     p = np.clip(probs, 1e-6, 1 - 1e-6)
-    return float(log_loss(y_true, p))
+    return float(log_loss(y_true, p, labels=[0, 1]))
 
 
 def _score_metrics(y_true: pd.Series, y_pred: np.ndarray) -> dict[str, float]:
@@ -148,7 +183,7 @@ def _classification_metrics_by_slice(
         y = group["win"].astype(int)
         p = np.clip(group["_prob"].to_numpy(), 1e-6, 1 - 1e-6)
         out[str(key)] = {
-            "log_loss": float(log_loss(y, p)),
+            "log_loss": _safe_log_loss(y, p),
             "brier": float(brier_score_loss(y, p)),
             "accuracy": float(accuracy_score(y, (p >= 0.5).astype(int))),
             "rows": int(len(group)),
@@ -172,7 +207,8 @@ def train_score_model(df: pd.DataFrame) -> dict:
 
     df = df[df["balls_left"] > 0].copy()
     df["season_str"] = df["season"].astype(str)
-    df["season_key"] = pd.to_numeric(df["season_str"].str.split("/").str[0], errors="coerce")
+    if "season_key" not in df.columns:
+        df["season_key"] = pd.to_numeric(df["season_str"].str.split("/").str[0], errors="coerce")
 
     train_df, test_df = split_by_season(df, "season_key")
     X_train = train_df[CATEGORICAL + NUMERIC]
@@ -243,7 +279,8 @@ def train_win_model(df: pd.DataFrame) -> dict:
     df = df[df["win"].notna()].copy()
     df = df[df["balls_left"] > 0].copy()
     df["season_str"] = df["season"].astype(str)
-    df["season_key"] = pd.to_numeric(df["season_str"].str.split("/").str[0], errors="coerce")
+    if "season_key" not in df.columns:
+        df["season_key"] = pd.to_numeric(df["season_str"].str.split("/").str[0], errors="coerce")
 
     train_df, calib_df, test_df = split_by_season_three(df, "season_key")
     fit_df = pd.concat([train_df, calib_df], ignore_index=True)
@@ -334,6 +371,16 @@ def main() -> None:
     df = pd.read_csv(DATA_PATH, low_memory=False)
     print(f"\nLoaded {len(df):,} training samples")
 
+    df, filter_summary = filter_current_ipl_training_data(df)
+    print("\nApplied training filters:")
+    print(
+        f"  Active teams only: {filter_summary['rows_before_filter']:,} -> {filter_summary['rows_after_filter']:,} rows"
+    )
+    print(
+        f"  Seasons included: {filter_summary['min_season_included']} to {filter_summary['max_season_included']}"
+    )
+    print(f"  Teams: {', '.join(filter_summary['teams'])}")
+
     score_report = train_score_model(df)
     win_report = train_win_model(df)
 
@@ -341,6 +388,7 @@ def main() -> None:
     combined_report = {
         "score": score_report,
         "win": win_report,
+        "training_filter": filter_summary,
         "total_training_seconds": total_time,
     }
     CPU_REPORT_PATH.write_text(json.dumps(combined_report, indent=2), encoding="utf-8")

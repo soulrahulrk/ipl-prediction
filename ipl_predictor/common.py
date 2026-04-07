@@ -19,6 +19,8 @@ MODELS_DIR = ROOT_DIR / "models"
 
 SCORE_MODEL_PATH = MODELS_DIR / "score_model.pkl"
 WIN_MODEL_PATH = MODELS_DIR / "win_model.pkl"
+PRE_MATCH_SCORE_MODEL_PATH = MODELS_DIR / "pre_match_score_model.pkl"
+PRE_MATCH_WIN_MODEL_PATH = MODELS_DIR / "pre_match_win_model.pkl"
 VENUE_STATS_PATH = PROCESSED_DIR / "venue_stats.csv"
 TEAM_FORM_PATH = PROCESSED_DIR / "team_form_latest.csv"
 TEAM_VENUE_FORM_PATH = PROCESSED_DIR / "team_venue_form_latest.csv"
@@ -27,6 +29,21 @@ BATTER_FORM_PATH = PROCESSED_DIR / "batter_form_latest.csv"
 BOWLER_FORM_PATH = PROCESSED_DIR / "bowler_form_latest.csv"
 BATTER_BOWLER_FORM_PATH = PROCESSED_DIR / "batter_bowler_form_latest.csv"
 SCORE_UNCERTAINTY_PATH = MODELS_DIR / "score_uncertainty.json"
+ACTIVE_TEAMS_2026_PATH = PROCESSED_DIR / "active_teams_2026.csv"
+TEAM_PLAYER_POOL_2026_PATH = PROCESSED_DIR / "team_player_pool_2026.csv"
+
+ACTIVE_IPL_TEAMS_2026 = [
+    "Chennai Super Kings",
+    "Delhi Capitals",
+    "Gujarat Titans",
+    "Kolkata Knight Riders",
+    "Lucknow Super Giants",
+    "Mumbai Indians",
+    "Punjab Kings",
+    "Rajasthan Royals",
+    "Royal Challengers Bengaluru",
+    "Sunrisers Hyderabad",
+]
 
 TEAM_ALIASES = {
     "Delhi Capitals": "Delhi Capitals",
@@ -199,6 +216,19 @@ def normalize_venue(name: str | None) -> str | None:
     return VENUE_ALIASES.get(name, name)
 
 
+def season_to_year(season_value: Any) -> int | None:
+    if season_value is None:
+        return None
+    text = str(season_value).strip()
+    if not text:
+        return None
+    first = text.split("/")[0]
+    try:
+        return int(first)
+    except ValueError:
+        return None
+
+
 def parse_overs(overs_text: str) -> int:
     if not overs_text:
         return 0
@@ -222,6 +252,12 @@ def coerce_float(value: Any, default: float | None = None) -> float | None:
 
 def load_models():
     return joblib.load(SCORE_MODEL_PATH), joblib.load(WIN_MODEL_PATH)
+
+
+def load_pre_match_models():
+    if not PRE_MATCH_SCORE_MODEL_PATH.exists() or not PRE_MATCH_WIN_MODEL_PATH.exists():
+        return None, None
+    return joblib.load(PRE_MATCH_SCORE_MODEL_PATH), joblib.load(PRE_MATCH_WIN_MODEL_PATH)
 
 
 def load_score_uncertainty_profile() -> dict[str, float]:
@@ -638,3 +674,46 @@ def predict_match_state(
             else f"{float(row['required_minus_current_rr']):+.2f}"
         ),
     }, []
+
+
+def predict_pre_match(
+    team1: str,
+    team2: str,
+    venue: str,
+    score_model,
+    win_model,
+) -> dict[str, str]:
+    """Provides a pre-match prediction using the dedicated DL models."""
+    if not score_model or not win_model:
+        return {"error": "Pre-match DL models not found."}
+
+    # Format the input data required by the pipeline
+    features = pd.DataFrame([{
+        "batting_team": team1,
+        "bowling_team": team2,
+        "venue": venue,
+    }])
+    
+    # Predict the score (assuming team1 is batting first)
+    predicted_score = score_model.predict(features)[0]
+    
+    # Predict the win probability
+    # win_prob yields probability that team1 wins
+    win_prob = win_model.predict_proba(features)[0][1]
+
+    # Decide likely winner
+    if win_prob > 0.5:
+        likely_winner = team1
+    else:
+        likely_winner = team2
+
+    return {
+        "predicted_score": f"{predicted_score:.0f} - {predicted_score + 15:.0f}",
+        "exact_predicted_score": f"{predicted_score:.1f}",
+        "team1": team1,
+        "team2": team2,
+        "team1_win_prob": f"{win_prob * 100:.1f}%",
+        "team2_win_prob": f"{(1 - win_prob) * 100:.1f}%",
+        "likely_winner": likely_winner,
+        "win_probability_raw": win_prob,
+    }

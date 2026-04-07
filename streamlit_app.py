@@ -7,14 +7,18 @@ import pandas as pd
 import streamlit as st
 
 from ipl_predictor import (
+    ACTIVE_IPL_TEAMS_2026,
+    ACTIVE_TEAMS_2026_PATH,
     PROCESSED_DIR,
     TEAM_ALIASES,
+    TEAM_PLAYER_POOL_2026_PATH,
     SupportTables,
     build_feature_frame,
     load_models,
     load_support_tables,
     parse_overs,
     predict_match_state,
+    season_to_year,
 )
 
 
@@ -29,7 +33,31 @@ def get_support_tables() -> SupportTables:
 
 
 @st.cache_data(show_spinner=False)
-def get_player_pool() -> dict[str, list[str]]:
+def get_active_teams() -> list[str]:
+    if ACTIVE_TEAMS_2026_PATH.exists():
+        df = pd.read_csv(ACTIVE_TEAMS_2026_PATH, usecols=["team"], low_memory=False)
+        teams = [str(t).strip() for t in df["team"].dropna().tolist() if str(t).strip()]
+        if teams:
+            return teams
+    return ACTIVE_IPL_TEAMS_2026
+
+
+@st.cache_data(show_spinner=False)
+def get_player_pool(active_teams: list[str]) -> dict[str, list[str]]:
+    if TEAM_PLAYER_POOL_2026_PATH.exists():
+        df = pd.read_csv(
+            TEAM_PLAYER_POOL_2026_PATH,
+            usecols=["team", "player", "appearances"],
+            low_memory=False,
+        )
+        pool: dict[str, list[str]] = {team: [] for team in active_teams}
+        for team, group in df.groupby("team"):
+            if str(team) not in pool:
+                continue
+            players = group.sort_values(by=["appearances", "player"], ascending=[False, True])["player"]
+            pool[str(team)] = [str(p) for p in players.tolist()]
+        return pool
+
     features_path = PROCESSED_DIR / "ipl_features.csv"
     if not features_path.exists():
         return {}
@@ -41,9 +69,13 @@ def get_player_pool() -> dict[str, list[str]]:
     )
 
     team_players: dict[str, set[str]] = {}
+    active_set = set(active_teams)
     for row in df.itertuples(index=False):
         batting_team = str(row.batting_team)
         bowling_team = str(row.bowling_team)
+
+        if batting_team not in active_set or bowling_team not in active_set:
+            continue
 
         team_players.setdefault(batting_team, set()).update(
             {str(row.striker), str(row.non_striker)}
@@ -66,21 +98,26 @@ def get_history_table() -> pd.DataFrame:
     return pd.read_csv(features_path, usecols=cols, low_memory=False)
 
 
-def get_team_options(support_tables: SupportTables) -> list[str]:
+def get_team_options(support_tables: SupportTables, active_teams: list[str]) -> list[str]:
     from_aliases = set(TEAM_ALIASES.values())
     from_form = set(support_tables.team_form_map.keys())
-    return sorted(from_aliases | from_form)
+    available = from_aliases | from_form
+    ordered_active = [team for team in active_teams if team in available]
+    return ordered_active if ordered_active else active_teams
 
 
 def get_season_options(history_df: pd.DataFrame) -> list[str]:
     if history_df.empty:
         return [str(datetime.now().year)]
     seasons = sorted({str(s) for s in history_df["season"].dropna().astype(str).tolist()})
+    recent = [s for s in seasons if (season_to_year(s) or 0) >= 2024]
+    if recent:
+        return recent
     return seasons or [str(datetime.now().year)]
 
 
 def get_venue_options(history_df: pd.DataFrame, support_tables: SupportTables) -> list[str]:
-    from_history = set()
+    from_history: set[str] = set()
     if not history_df.empty:
         from_history = set(history_df["venue"].dropna().astype(str).tolist())
     from_support = set(support_tables.venue_stats.keys())
@@ -118,28 +155,57 @@ def pressure_status(required_minus_current_rr: str) -> tuple[str, str]:
     return "In Control", "Batting side is keeping up with or ahead of the chase pace."
 
 
-st.set_page_config(page_title="IPL Match Predictor", page_icon="cricket", layout="wide")
+st.set_page_config(page_title="IPL Match Predictor", page_icon="🏏", layout="wide")
 
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap');
 
-    .stApp {
-      background: radial-gradient(circle at 15% 15%, #fff4d8 0%, #f7fbff 40%, #eef7ff 100%);
+        .stApp {
+            background: linear-gradient(140deg, #042f4f 0%, #0c4a6e 38%, #f59e0b 100%);
+            color: #081018;
     }
+
+        [data-testid="stSidebar"] {
+            background: rgba(255, 255, 255, 0.92);
+            border-right: 1px solid #d1d5db;
+        }
+
+        [data-testid="stForm"], .stMetric, .stAlert {
+            background: rgba(255, 255, 255, 0.94);
+            border-radius: 14px;
+            border: 1px solid #dbe3ec;
+            color: #0f172a;
+        }
+
+        [data-testid="stMetricValue"] {
+            color: #0b2a4a;
+        }
+
+        [data-baseweb="select"] > div,
+        .stTextInput > div > div,
+        .stNumberInput > div > div,
+        .stDateInput > div > div {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+        }
+
+        label, .stMarkdown, p, .stCaption {
+            color: #0b1220;
+        }
 
     h1, h2, h3 {
       font-family: 'Space Grotesk', sans-serif;
       letter-spacing: 0.2px;
     }
 
-    .hero-box {
-      border: 1px solid #e6edf5;
+        .hero-box {
+            border: 1px solid #cdd8e6;
       border-radius: 16px;
       padding: 1rem 1.1rem;
-      background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
-      box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
+            background: linear-gradient(135deg, #fefefe 0%, #f4f8ff 100%);
+            box-shadow: 0 14px 28px rgba(3, 18, 35, 0.22);
       margin-bottom: 0.6rem;
     }
 
@@ -157,7 +223,7 @@ st.markdown(
     """
     <div class="hero-box">
       <h1 style="margin:0;">IPL Live Match Predictor</h1>
-      <p class="small-note">Simple mode: fill only match basics, click one button, and read plain-language output.</p>
+            <p class="small-note">High-contrast mode enabled. Inputs are restricted to active IPL teams for 2026 context.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -170,10 +236,11 @@ with st.expander("How to use in 3 quick steps", expanded=False):
 
 support_tables = get_support_tables()
 score_model, win_model = get_models()
-player_pool = get_player_pool()
+active_teams = get_active_teams()
+player_pool = get_player_pool(active_teams)
 history_df = get_history_table()
 
-team_options = get_team_options(support_tables)
+team_options = get_team_options(support_tables, active_teams)
 if not team_options:
     st.error("No team data found. Please run preprocessing first.")
     st.stop()

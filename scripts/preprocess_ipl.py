@@ -12,6 +12,12 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from ipl_predictor import DATA_DIR, PROCESSED_DIR, normalize_team, normalize_venue
+from ipl_predictor import (
+    ACTIVE_IPL_TEAMS_2026,
+    ACTIVE_TEAMS_2026_PATH,
+    TEAM_PLAYER_POOL_2026_PATH,
+    season_to_year,
+)
 
 
 RAW_DIR = DATA_DIR / "ipl_csv2"
@@ -24,6 +30,7 @@ DEFAULT_VENUE_STRENGTH = {
     "venue_avg_second_innings": 0.0,
     "venue_bat_first_win_rate": 0.0,
 }
+ACTIVE_SQUAD_LOOKBACK_START_YEAR = 2024
 
 
 def parse_date(value: str | None) -> date | None:
@@ -527,6 +534,58 @@ def compute_features_for_match(
     return rows
 
 
+def build_active_team_player_pool(
+    features_df: pd.DataFrame,
+    active_teams: list[str],
+    min_season_year: int,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    scoped = features_df.copy()
+    scoped["season_key"] = scoped["season"].apply(season_to_year)
+    scoped = scoped[scoped["season_key"].notna()].copy()
+    scoped["season_key"] = scoped["season_key"].astype(int)
+    scoped = scoped[scoped["season_key"] >= min_season_year]
+    scoped = scoped[
+        scoped["batting_team"].isin(active_teams)
+        & scoped["bowling_team"].isin(active_teams)
+    ]
+
+    player_events = pd.concat(
+        [
+            scoped[["batting_team", "striker", "season_key"]].rename(
+                columns={"batting_team": "team", "striker": "player"}
+            ),
+            scoped[["batting_team", "non_striker", "season_key"]].rename(
+                columns={"batting_team": "team", "non_striker": "player"}
+            ),
+            scoped[["bowling_team", "bowler", "season_key"]].rename(
+                columns={"bowling_team": "team", "bowler": "player"}
+            ),
+        ],
+        ignore_index=True,
+    )
+
+    player_events["player"] = player_events["player"].astype(str).str.strip()
+    player_events = player_events[
+        (player_events["player"] != "")
+        & (player_events["player"] != "Unknown")
+        & (player_events["player"] != "nan")
+    ]
+
+    pool = (
+        player_events.groupby(["team", "player"], as_index=False)
+        .agg(appearances=("player", "size"), latest_season=("season_key", "max"))
+        .sort_values(
+            by=["team", "latest_season", "appearances", "player"],
+            ascending=[True, False, False, True],
+        )
+    )
+
+    # Keep a practical squad-sized pool per team for UI dropdowns.
+    pool = pool.groupby("team", as_index=False, group_keys=False).head(24).reset_index(drop=True)
+    active_teams_df = pd.DataFrame({"team": active_teams})
+    return active_teams_df, pool
+
+
 def main() -> None:
     metadata = load_match_metadata()
     match_paths = [Path(p) for p in glob.glob(str(RAW_DIR / "*.csv")) if not p.endswith("_info.csv")]
@@ -599,7 +658,16 @@ def main() -> None:
         )
 
     out_path = OUT_DIR / "ipl_features.csv"
-    pd.DataFrame(all_rows).to_csv(out_path, index=False)
+    features_df = pd.DataFrame(all_rows)
+    features_df.to_csv(out_path, index=False)
+
+    active_teams_df, player_pool_df = build_active_team_player_pool(
+        features_df,
+        ACTIVE_IPL_TEAMS_2026,
+        min_season_year=ACTIVE_SQUAD_LOOKBACK_START_YEAR,
+    )
+    active_teams_df.to_csv(ACTIVE_TEAMS_2026_PATH, index=False)
+    player_pool_df.to_csv(TEAM_PLAYER_POOL_2026_PATH, index=False)
 
     batter_form_path = OUT_DIR / "batter_form_latest.csv"
     batter_rows = []
@@ -660,6 +728,8 @@ def main() -> None:
     print(f"Wrote batter form stats to {batter_form_path}")
     print(f"Wrote bowler form stats to {bowler_form_path}")
     print(f"Wrote batter-bowler form stats to {bb_form_path}")
+    print(f"Wrote active teams to {ACTIVE_TEAMS_2026_PATH}")
+    print(f"Wrote team player pool to {TEAM_PLAYER_POOL_2026_PATH}")
 
 
 if __name__ == "__main__":
