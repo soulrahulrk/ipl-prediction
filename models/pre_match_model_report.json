@@ -1,0 +1,123 @@
+{
+  "task": "pre_match",
+  "modeling_strategy": "low_data_regularized_ml_with_rolling_season_cv",
+  "features": {
+    "categorical": [
+      "batting_team",
+      "bowling_team",
+      "venue"
+    ],
+    "numeric": [
+      "batting_team_form",
+      "bowling_team_form",
+      "batting_team_venue_form",
+      "bowling_team_venue_form",
+      "batting_vs_bowling_form",
+      "venue_avg_first_innings",
+      "venue_avg_second_innings",
+      "venue_bat_first_win_rate"
+    ]
+  },
+  "split": {
+    "train_min_season": 2007,
+    "train_max_season": 2024,
+    "valid_season": 2025,
+    "test_season": 2026,
+    "train_rows": 1076,
+    "valid_rows": 70,
+    "test_rows": 19
+  },
+  "selection": {
+    "score_model": "ridge",
+    "score_alpha": 10.0,
+    "score_cv": [
+      {
+        "alpha": 0.1,
+        "cv_mae": 27.796165948565392
+      },
+      {
+        "alpha": 0.5,
+        "cv_mae": 27.584046769785616
+      },
+      {
+        "alpha": 1.0,
+        "cv_mae": 27.40347578992223
+      },
+      {
+        "alpha": 3.0,
+        "cv_mae": 27.01577041118143
+      },
+      {
+        "alpha": 10.0,
+        "cv_mae": 26.550076737787755
+      }
+    ],
+    "win_model": "catboost_classifier",
+    "win_c": 0.25,
+    "win_model_details": {
+      "win_c": 0.25,
+      "catboost_best_iteration": 14
+    },
+    "win_cv": [
+      {
+        "c": 0.25,
+        "cv_log_loss": 0.7024205206441589
+      },
+      {
+        "c": 0.5,
+        "cv_log_loss": 0.7110878782081946
+      },
+      {
+        "c": 1.0,
+        "cv_log_loss": 0.7233997372746225
+      },
+      {
+        "c": 2.0,
+        "cv_log_loss": 0.7385866695453414
+      },
+      {
+        "c": 4.0,
+        "cv_log_loss": 0.7552126652284888
+      }
+    ]
+  },
+  "win_metrics": {
+    "train": {
+      "accuracy": 0.5762081784386617,
+      "log_loss": 0.6838733232997827,
+      "brier": 0.24537113071602246
+    },
+    "valid": {
+      "accuracy": 0.5571428571428572,
+      "log_loss": 0.6908620511319388,
+      "brier": 0.2488581672142565
+    },
+    "test": {
+      "accuracy": 0.5789473684210527,
+      "log_loss": 0.6836751543837524,
+      "brier": 0.24527299817552875
+    }
+  },
+  "score_metrics": {
+    "train": {
+      "mae": 23.230420468419453,
+      "rmse": 30.178394032328118,
+      "r2": 0.10355591316925694
+    },
+    "valid": {
+      "mae": 32.93821868183917,
+      "rmse": 40.788455461833124,
+      "r2": -0.19065030348770162
+    },
+    "test": {
+      "mae": 36.444024755874246,
+      "rmse": 41.14706953284497,
+      "r2": -0.434531808699681
+    }
+  },
+  "artifacts": {
+    "pre_match_win_model": "models\\pre_match_win_model.pkl",
+    "pre_match_score_model": "models\\pre_match_score_model.pkl",
+    "report": "models\\pre_match_model_report.json"
+  }
+}

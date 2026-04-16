@@ -1,0 +1,869 @@
+{
+  "search_type": "ml_first_validation_selected_latest_season_holdout",
+  "selection_rule": {
+    "scope": "lowest validation composite score = score_robust_objective + 10 * win_log_loss, tie-break by win_brier",
+    "score_model": "Best validation score model selected from ML candidates and robust ensemble candidate",
+    "win_model": "Best calibrated ML classifier selected on validation only",
+    "test_policy": "2026 test touched once only for final selected scope/model pair"
+  },
+  "scopes": {
+    "recent_active_history": {
+      "scope_summary": {
+        "scope": "recent_active_history",
+        "rows_before_scope_filter": 282552,
+        "rows_after_scope_filter": 38896,
+        "min_season": 2024,
+        "max_season": 2026,
+        "teams": [
+          "Chennai Super Kings",
+          "Delhi Capitals",
+          "Gujarat Titans",
+          "Kolkata Knight Riders",
+          "Lucknow Super Giants",
+          "Mumbai Indians",
+          "Punjab Kings",
+          "Rajasthan Royals",
+          "Royal Challengers Bengaluru",
+          "Sunrisers Hyderabad"
+        ]
+      },
+      "score_split": {
+        "train_min_season": 2024,
+        "train_max_season": 2024,
+        "valid_season": 2025,
+        "test_season": 2026,
+        "train_rows": 17012,
+        "valid_rows": 17177,
+        "test_rows": 4475
+      },
+      "win_split": {
+        "train_min_season": 2024,
+        "train_max_season": 2024,
+        "valid_season": 2025,
+        "test_season": 2026,
+        "train_rows": 17012,
+        "valid_rows": 16620,
+        "test_rows": 4475
+      },
+      "score_valid": {
+        "hgb": {
+          "mae": 19.078867096723968,
+          "rmse": 24.874468719445378,
+          "weighted_mae": 18.53242225645691,
+          "weighted_rmse": 24.224407546350662,
+          "weighted_abs_error_p90": 38.83923431749176,
+          "robust_objective": 23.57063891707495
+        },
+        "xgboost_gpu": {
+          "mae": 18.001997523128193,
+          "rmse": 24.068518966388208,
+          "weighted_mae": 17.43456020172163,
+          "weighted_rmse": 23.36140496740046,
+          "weighted_abs_error_p90": 37.50738525390625,
+          "robust_objective": 22.519879627536916
+        },
+        "catboost_gpu": {
+          "mae": 21.43340705991724,
+          "rmse": 27.912196247628334,
+          "weighted_mae": 20.943434548459905,
+          "weighted_rmse": 27.333569789495428,
+          "weighted_abs_error_p90": 47.47522982832743,
+          "robust_objective": 27.159751174802466
+        },
+        "ensemble_ml_top3": {
+          "mae": 18.314337614066524,
+          "rmse": 24.250168212870463,
+          "weighted_mae": 17.782260379885766,
+          "weighted_rmse": 23.59883369339651,
+          "weighted_abs_error_p90": 38.95289614288896,
+          "robust_objective": 22.993656404065007
+        }
+      },
+      "score_valid_objectives": {
+        "hgb": 23.57063891707495,
+        "xgboost_gpu": 22.519879627536916,
+        "catboost_gpu": 27.159751174802466,
+        "ensemble_ml_top3": 22.993656404065007
+      },
+      "win_valid": {
+        "hgb_raw": {
+          "log_loss": 1.5038525188336473,
+          "brier": 0.3295000562419478,
+          "accuracy": 0.5992779783393501
+        },
+        "xgboost_gpu_raw": {
+          "log_loss": 1.4056528923690879,
+          "brier": 0.3161044283826139,
+          "accuracy": 0.6166666666666667
+        },
+        "catboost_gpu_raw": {
+          "log_loss": 0.6867384894812215,
+          "brier": 0.24681017565669694,
+          "accuracy": 0.5528279181708785
+        },
+        "hgb_calibrated": {
+          "log_loss": 0.6220298515756516,
+          "brier": 0.2179834564606269,
+          "accuracy": 0.6253910950661853
+        },
+        "xgboost_gpu_calibrated": {
+          "log_loss": 0.5983670612086973,
+          "brier": 0.20830767271190123,
+          "accuracy": 0.6484957882069795
+        },
+        "catboost_gpu_calibrated": {
+          "log_loss": 0.6679115640459062,
+          "brier": 0.2390013293123727,
+          "accuracy": 0.5626353790613718
+        }
+      },
+      "selected_score_model": "xgboost_gpu",
+      "selected_win_model": "xgboost_gpu_calibrated",
+      "selected_win_base_model": "xgboost_gpu_calibrated",
+      "selected_score_metrics_valid": {
+        "mae": 18.001997523128193,
+        "rmse": 24.068518966388208,
+        "weighted_mae": 17.43456020172163,
+        "weighted_rmse": 23.36140496740046,
+        "weighted_abs_error_p90": 37.50738525390625,
+        "robust_objective": 22.519879627536916
+      },
+      "selected_win_metrics_valid": {
+        "log_loss": 0.5983670612086973,
+        "brier": 0.20830767271190123,
+        "accuracy": 0.6484957882069795
+      },
+      "win_stability_valid": {
+        "base_win_model": "xgboost_gpu_calibrated",
+        "stable_variant": "xgboost_gpu_calibrated_stable",
+        "use_stable_variant": false,
+        "profile": {
+          "alpha_death": 0.0,
+          "alpha_high_pressure": 0.0,
+          "pressure_rr_gap_threshold": 1.25,
+          "pressure_balls_left_max": 48,
+          "safety_floor_alpha": 0.0,
+          "safety_floor_applied": false,
+          "valid_objective_before": 0.8181408745381704,
+          "valid_objective_after": 0.8181408745381704,
+          "valid_metrics_before": {
+            "log_loss": 0.5983670612086973,
+            "brier": 0.20830767271190123,
+            "accuracy": 0.6484957882069795
+          },
+          "valid_metrics_after": {
+            "log_loss": 0.5983670612086973,
+            "brier": 0.20830767271190123,
+            "accuracy": 0.6484957882069795
+          },
+          "valid_slice_metrics_before": {
+            "death_over": {
+              "log_loss": 0.5536964542126738,
+              "brier": 0.1914419593217221,
+              "accuracy": 0.6784226603721188,
+              "rows": 3601
+            },
+            "high_pressure_chase": {
+              "log_loss": 0.38767792595821843,
+              "brier": 0.1217101337574435,
+              "accuracy": 0.913417052214144,
+              "rows": 1513
+            },
+            "overall_difficult": {
+              "log_loss": 0.5386504640648228,
+              "brier": 0.18492705878074214,
+              "accuracy": 0.7064001903402332,
+              "rows": 4203
+            }
+          },
+          "valid_slice_metrics_after": {
+            "death_over": {
+              "log_loss": 0.5536964542126738,
+              "brier": 0.1914419593217221,
+              "accuracy": 0.6784226603721188,
+              "rows": 3601
+            },
+            "high_pressure_chase": {
+              "log_loss": 0.38767792595821843,
+              "brier": 0.1217101337574435,
+              "accuracy": 0.913417052214144,
+              "rows": 1513
+            },
+            "overall_difficult": {
+              "log_loss": 0.5386504640648228,
+              "brier": 0.18492705878074214,
+              "accuracy": 0.7064001903402332,
+              "rows": 4203
+            }
+          },
+          "use_stable_variant": false
+        }
+      },
+      "scope_validation_objective": 28.50355023962389,
+      "scope_validation_tie_break_brier": 0.20830767271190123
+    },
+    "all_active_history": {
+      "scope_summary": {
+        "scope": "all_active_history",
+        "rows_before_scope_filter": 282552,
+        "rows_after_scope_filter": 238672,
+        "min_season": 2007,
+        "max_season": 2026,
+        "teams": [
+          "Chennai Super Kings",
+          "Delhi Capitals",
+          "Gujarat Titans",
+          "Kolkata Knight Riders",
+          "Lucknow Super Giants",
+          "Mumbai Indians",
+          "Punjab Kings",
+          "Rajasthan Royals",
+          "Royal Challengers Bengaluru",
+          "Sunrisers Hyderabad"
+        ]
+      },
+      "score_split": {
+        "train_min_season": 2007,
+        "train_max_season": 2024,
+        "valid_season": 2025,
+        "test_season": 2026,
+        "train_rows": 215675,
+        "valid_rows": 17177,
+        "test_rows": 4475
+      },
+      "win_split": {
+        "train_min_season": 2007,
+        "train_max_season": 2024,
+        "valid_season": 2025,
+        "test_season": 2026,
+        "train_rows": 212060,
+        "valid_rows": 16620,
+        "test_rows": 4475
+      },
+      "score_valid": {
+        "hgb": {
+          "mae": 17.724308236521747,
+          "rmse": 24.50446723470054,
+          "weighted_mae": 16.85309403109991,
+          "weighted_rmse": 23.502655897323038,
+          "weighted_abs_error_p90": 40.062597126979284,
+          "robust_objective": 22.66186614865991
+        },
+        "xgboost_gpu": {
+          "mae": 16.561489665536726,
+          "rmse": 23.062217954995578,
+          "weighted_mae": 15.816805252138641,
+          "weighted_rmse": 22.17415857068607,
+          "weighted_abs_error_p90": 36.63352966308594,
+          "robust_objective": 21.164387575272336
+        },
+        "catboost_gpu": {
+          "mae": 19.284774160513187,
+          "rmse": 25.830952037483566,
+          "weighted_mae": 18.543950805878268,
+          "weighted_rmse": 25.00213358877204,
+          "weighted_abs_error_p90": 42.21166246663779,
+          "robust_objective": 24.354471529005018
+        },
+        "ensemble_ml_top3": {
+          "mae": 17.424292529136714,
+          "rmse": 23.983458981925754,
+          "weighted_mae": 16.63890402350033,
+          "weighted_rmse": 23.071700166644845,
+          "weighted_abs_error_p90": 38.78808185432791,
+          "robust_objective": 22.212759348225045
+        }
+      },
+      "score_valid_objectives": {
+        "hgb": 22.66186614865991,
+        "xgboost_gpu": 21.164387575272336,
+        "catboost_gpu": 24.354471529005018,
+        "ensemble_ml_top3": 22.212759348225045
+      },
+      "win_valid": {
+        "hgb_raw": {
+          "log_loss": 0.7035078195413911,
+          "brier": 0.2133479112010347,
+          "accuracy": 0.6978339350180506
+        },
+        "xgboost_gpu_raw": {
+          "log_loss": 0.9422571728756447,
+          "brier": 0.25509549981232826,
+          "accuracy": 0.660950661853189
+        },
+        "catboost_gpu_raw": {
+          "log_loss": 0.5678005249674013,
+          "brier": 0.19415352256373752,
+          "accuracy": 0.6896510228640192
+        },
+        "hgb_calibrated": {
+          "log_loss": 0.555300108769636,
+          "brier": 0.1903288161675982,
+          "accuracy": 0.6996991576413959
+        },
+        "xgboost_gpu_calibrated": {
+          "log_loss": 0.6086079174213017,
+          "brier": 0.21086109285223165,
+          "accuracy": 0.6652827918170878
+        },
+        "catboost_gpu_calibrated": {
+          "log_loss": 0.5590289694009878,
+          "brier": 0.19195822486671946,
+          "accuracy": 0.6936823104693141
+        }
+      },
+      "selected_score_model": "xgboost_gpu",
+      "selected_win_model": "hgb_calibrated",
+      "selected_win_base_model": "hgb_calibrated",
+      "selected_score_metrics_valid": {
+        "mae": 16.561489665536726,
+        "rmse": 23.062217954995578,
+        "weighted_mae": 15.816805252138641,
+        "weighted_rmse": 22.17415857068607,
+        "weighted_abs_error_p90": 36.63352966308594,
+        "robust_objective": 21.164387575272336
+      },
+      "selected_win_metrics_valid": {
+        "log_loss": 0.555300108769636,
+        "brier": 0.1903288161675982,
+        "accuracy": 0.6996991576413959
+      },
+      "win_stability_valid": {
+        "base_win_model": "hgb_calibrated",
+        "stable_variant": "hgb_calibrated_stable",
+        "use_stable_variant": false,
+        "profile": {
+          "alpha_death": 0.0,
+          "alpha_high_pressure": 0.0,
+          "pressure_rr_gap_threshold": 1.25,
+          "pressure_balls_left_max": 48,
+          "safety_floor_alpha": 0.0,
+          "safety_floor_applied": false,
+          "valid_objective_before": 0.7480330776711941,
+          "valid_objective_after": 0.7480330776711941,
+          "valid_metrics_before": {
+            "log_loss": 0.555300108769636,
+            "brier": 0.1903288161675982,
+            "accuracy": 0.6996991576413959
+          },
+          "valid_metrics_after": {
+            "log_loss": 0.555300108769636,
+            "brier": 0.1903288161675982,
+            "accuracy": 0.6996991576413959
+          },
+          "valid_slice_metrics_before": {
+            "death_over": {
+              "log_loss": 0.4796995107378499,
+              "brier": 0.161258581470525,
+              "accuracy": 0.7434046098306026,
+              "rows": 3601
+            },
+            "high_pressure_chase": {
+              "log_loss": 0.29958752724603477,
+              "brier": 0.08331509504611448,
+              "accuracy": 0.9286186384666226,
+              "rows": 1513
+            },
+            "overall_difficult": {
+              "log_loss": 0.4690961327897668,
+              "brier": 0.15555666188048592,
+              "accuracy": 0.7630264097073519,
+              "rows": 4203
+            }
+          },
+          "valid_slice_metrics_after": {
+            "death_over": {
+              "log_loss": 0.4796995107378499,
+              "brier": 0.161258581470525,
+              "accuracy": 0.7434046098306026,
+              "rows": 3601
+            },
+            "high_pressure_chase": {
+              "log_loss": 0.29958752724603477,
+              "brier": 0.08331509504611448,
+              "accuracy": 0.9286186384666226,
+              "rows": 1513
+            },
+            "overall_difficult": {
+              "log_loss": 0.4690961327897668,
+              "brier": 0.15555666188048592,
+              "accuracy": 0.7630264097073519,
+              "rows": 4203
+            }
+          },
+          "use_stable_variant": false
+        }
+      },
+      "scope_validation_objective": 26.717388662968695,
+      "scope_validation_tie_break_brier": 0.1903288161675982
+    }
+  },
+  "selected_scope": "all_active_history",
+  "selected_score_model": "xgboost_gpu",
+  "selected_win_model": "hgb_calibrated",
+  "selected_score_metrics_valid": {
+    "mae": 16.561489665536726,
+    "rmse": 23.062217954995578,
+    "weighted_mae": 15.816805252138641,
+    "weighted_rmse": 22.17415857068607,
+    "weighted_abs_error_p90": 36.63352966308594,
+    "robust_objective": 21.164387575272336
+  },
+  "selected_win_metrics_valid": {
+    "log_loss": 0.555300108769636,
+    "brier": 0.1903288161675982,
+    "accuracy": 0.6996991576413959
+  },
+  "selected_score_metrics_test": {
+    "mae": 16.20685638086756,
+    "rmse": 22.20360786089806,
+    "weighted_mae": 15.430135660480373,
+    "weighted_rmse": 21.303609385541225,
+    "weighted_abs_error_p90": 33.39508056640625,
+    "robust_objective": 20.180593200140553
+  },
+  "selected_win_metrics_test": {
+    "log_loss": 0.6759302512767532,
+    "brier": 0.2348690568365511,
+    "accuracy": 0.6243575418994414
+  },
+  "selected_win_stability": {
+    "base_win_model": "hgb_calibrated",
+    "stable_variant": "hgb_calibrated_stable",
+    "use_stable_variant": false,
+    "profile": {
+      "alpha_death": 0.0,
+      "alpha_high_pressure": 0.0,
+      "pressure_rr_gap_threshold": 1.25,
+      "pressure_balls_left_max": 48.0,
+      "valid_objective_before": 0.7480330776711941,
+      "valid_objective_after": 0.7480330776711941,
+      "valid_metrics_before": {
+        "log_loss": 0.555300108769636,
+        "brier": 0.1903288161675982,
+        "accuracy": 0.6996991576413959
+      },
+      "valid_metrics_after": {
+        "log_loss": 0.555300108769636,
+        "brier": 0.1903288161675982,
+        "accuracy": 0.6996991576413959
+      },
+      "valid_slice_metrics_before": {
+        "death_over": {
+          "log_loss": 0.4796995107378499,
+          "brier": 0.161258581470525,
+          "accuracy": 0.7434046098306026,
+          "rows": 3601
+        },
+        "high_pressure_chase": {
+          "log_loss": 0.29958752724603477,
+          "brier": 0.08331509504611448,
+          "accuracy": 0.9286186384666226,
+          "rows": 1513
+        },
+        "overall_difficult": {
+          "log_loss": 0.4690961327897668,
+          "brier": 0.15555666188048592,
+          "accuracy": 0.7630264097073519,
+          "rows": 4203
+        }
+      },
+      "valid_slice_metrics_after": {
+        "death_over": {
+          "log_loss": 0.4796995107378499,
+          "brier": 0.161258581470525,
+          "accuracy": 0.7434046098306026,
+          "rows": 3601
+        },
+        "high_pressure_chase": {
+          "log_loss": 0.29958752724603477,
+          "brier": 0.08331509504611448,
+          "accuracy": 0.9286186384666226,
+          "rows": 1513
+        },
+        "overall_difficult": {
+          "log_loss": 0.4690961327897668,
+          "brier": 0.15555666188048592,
+          "accuracy": 0.7630264097073519,
+          "rows": 4203
+        }
+      }
+    },
+    "test_slice_metrics_before": {
+      "death_over": {
+        "log_loss": 0.5925762051197434,
+        "brier": 0.2026303364110693,
+        "accuracy": 0.6823406478578893,
+        "rows": 957
+      },
+      "high_pressure_chase": {
+        "log_loss": 0.3250243267748831,
+        "brier": 0.1005230154632476,
+        "accuracy": 0.8316151202749141,
+        "rows": 291
+      },
+      "overall_difficult": {
+        "log_loss": 0.5595211729801425,
+        "brier": 0.18933381622324097,
+        "accuracy": 0.6993524514338575,
+        "rows": 1081
+      }
+    },
+    "test_slice_metrics_after": {
+      "death_over": {
+        "log_loss": 0.5925762051197434,
+        "brier": 0.2026303364110693,
+        "accuracy": 0.6823406478578893,
+        "rows": 957
+      },
+      "high_pressure_chase": {
+        "log_loss": 0.3250243267748831,
+        "brier": 0.1005230154632476,
+        "accuracy": 0.8316151202749141,
+        "rows": 291
+      },
+      "overall_difficult": {
+        "log_loss": 0.5595211729801425,
+        "brier": 0.18933381622324097,
+        "accuracy": 0.6993524514338575,
+        "rows": 1081
+      }
+    }
+  },
+  "artifacts": {
+    "score_model": "models/score_model.pkl",
+    "win_model": "models/win_model.pkl",
+    "score_uncertainty": "models/score_uncertainty.json",
+    "win_stability_profile": "models/win_stability_profile.json",
+    "score_test_predictions": "models\\best_score_test_predictions.csv",
+    "win_test_predictions": "models\\best_win_test_predictions.csv"
+  },
+  "examples": {
+    "score_worst_examples": [
+      {
+        "match_id": 1527684,
+        "season": "2026",
+        "start_date": "2026-04-05",
+        "innings": 1,
+        "batting_team": "Royal Challengers Bengaluru",
+        "bowling_team": "Chennai Super Kings",
+        "runs": 18.0,
+        "wickets": 0,
+        "total_runs": 250,
+        "predicted_total_runs": 164.84832763671875,
+        "absolute_error": 85.15167236328125,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 1,
+        "batting_team": "Rajasthan Royals",
+        "bowling_team": "Mumbai Indians",
+        "runs": 145.0,
+        "wickets": 3,
+        "total_runs": 150,
+        "predicted_total_runs": 234.703125,
+        "absolute_error": 84.703125,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 1,
+        "batting_team": "Rajasthan Royals",
+        "bowling_team": "Mumbai Indians",
+        "runs": 146.0,
+        "wickets": 3,
+        "total_runs": 150,
+        "predicted_total_runs": 234.703125,
+        "absolute_error": 84.703125,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 1,
+        "batting_team": "Rajasthan Royals",
+        "bowling_team": "Mumbai Indians",
+        "runs": 150.0,
+        "wickets": 3,
+        "total_runs": 150,
+        "predicted_total_runs": 234.65679931640625,
+        "absolute_error": 84.65679931640625,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527684,
+        "season": "2026",
+        "start_date": "2026-04-05",
+        "innings": 1,
+        "batting_team": "Royal Challengers Bengaluru",
+        "bowling_team": "Chennai Super Kings",
+        "runs": 17.0,
+        "wickets": 0,
+        "total_runs": 250,
+        "predicted_total_runs": 165.79922485351562,
+        "absolute_error": 84.20077514648438,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527684,
+        "season": "2026",
+        "start_date": "2026-04-05",
+        "innings": 1,
+        "batting_team": "Royal Challengers Bengaluru",
+        "bowling_team": "Chennai Super Kings",
+        "runs": 3.0,
+        "wickets": 0,
+        "total_runs": 250,
+        "predicted_total_runs": 165.9633331298828,
+        "absolute_error": 84.03666687011719,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527684,
+        "season": "2026",
+        "start_date": "2026-04-05",
+        "innings": 1,
+        "batting_team": "Royal Challengers Bengaluru",
+        "bowling_team": "Chennai Super Kings",
+        "runs": 13.0,
+        "wickets": 0,
+        "total_runs": 250,
+        "predicted_total_runs": 166.02342224121094,
+        "absolute_error": 83.97657775878906,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527684,
+        "season": "2026",
+        "start_date": "2026-04-05",
+        "innings": 1,
+        "batting_team": "Royal Challengers Bengaluru",
+        "bowling_team": "Chennai Super Kings",
+        "runs": 3.0,
+        "wickets": 0,
+        "total_runs": 250,
+        "predicted_total_runs": 166.18124389648438,
+        "absolute_error": 83.81875610351562,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527684,
+        "season": "2026",
+        "start_date": "2026-04-05",
+        "innings": 1,
+        "batting_team": "Royal Challengers Bengaluru",
+        "bowling_team": "Chennai Super Kings",
+        "runs": 5.0,
+        "wickets": 0,
+        "total_runs": 250,
+        "predicted_total_runs": 166.24935913085938,
+        "absolute_error": 83.75064086914062,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      },
+      {
+        "match_id": 1527684,
+        "season": "2026",
+        "start_date": "2026-04-05",
+        "innings": 1,
+        "batting_team": "Royal Challengers Bengaluru",
+        "bowling_team": "Chennai Super Kings",
+        "runs": 17.0,
+        "wickets": 0,
+        "total_runs": 250,
+        "predicted_total_runs": 166.31675720214844,
+        "absolute_error": 83.68324279785156,
+        "scope": "all_active_history",
+        "model_name": "xgboost_gpu"
+      }
+    ],
+    "win_worst_examples": [
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 79.0,
+        "wickets": 5,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 80.0,
+        "wickets": 5,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 86.0,
+        "wickets": 5,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 87.0,
+        "wickets": 5,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 93.0,
+        "wickets": 5,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 93.0,
+        "wickets": 6,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 94.0,
+        "wickets": 6,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 98.0,
+        "wickets": 6,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 99.0,
+        "wickets": 6,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      },
+      {
+        "match_id": 1527686,
+        "season": "2026",
+        "start_date": "2026-04-07",
+        "innings": 2,
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Rajasthan Royals",
+        "runs": 99.0,
+        "wickets": 6,
+        "win": 0.0,
+        "predicted_win_prob_raw": 0.9442771084337349,
+        "predicted_win_prob": 0.9442771084337349,
+        "predicted_win_class": 1,
+        "logloss_contribution": 2.8873642368322088,
+        "scope": "all_active_history",
+        "model_name": "hgb_calibrated"
+      }
+    ]
+  },
+  "deployment_report": "models\\deployment_report.json",
+  "training_seconds_total": 245.97589540481567
+}

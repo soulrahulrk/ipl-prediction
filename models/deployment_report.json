@@ -1,0 +1,50 @@
+{
+  "deployment_scope": "all_active_history",
+  "deployment_score_model": "xgboost_gpu",
+  "deployment_score_metrics_test": {
+    "mae": 16.20685638086756,
+    "rmse": 22.20360786089806,
+    "weighted_mae": 15.430135660480373,
+    "weighted_rmse": 21.303609385541225,
+    "weighted_abs_error_p90": 33.39508056640625,
+    "robust_objective": 20.180593200140553
+  },
+  "deployment_win_model": "hgb_calibrated",
+  "deployment_win_metrics_test": {
+    "log_loss": 0.6759302512767532,
+    "brier": 0.2348690568365511,
+    "accuracy": 0.6243575418994414
+  },
+  "training_filter": {
+    "rows_after_filter": 238672,
+    "min_season_included": 2007,
+    "max_season_included": 2026,
+    "score_min_total_runs": 40.0,
+    "teams": [
+      "Chennai Super Kings",
+      "Delhi Capitals",
+      "Gujarat Titans",
+      "Kolkata Knight Riders",
+      "Lucknow Super Giants",
+      "Mumbai Indians",
+      "Punjab Kings",
+      "Rajasthan Royals",
+      "Royal Challengers Bengaluru",
+      "Sunrisers Hyderabad"
+    ]
+  },
+  "selection_rule": {
+    "scope": "lowest validation composite score = score_robust_objective + 10 * win_log_loss, tie-break by win_brier",
+    "score": "Best validation score model among HGB/XGBoost/CatBoost and a robust ensemble candidate when base models are stable",
+    "win": "Best calibrated ML classifier (HGB/XGBoost/CatBoost) selected on validation; optional slice stabilization enabled only if validation objective improves",
+    "test_policy": "2026 test touched once only after validation-based scope/model selection"
+  },
+  "artifacts": {
+    "score_model": "models/score_model.pkl",
+    "win_model": "models/win_model.pkl",
+    "score_uncertainty": "models/score_uncertainty.json",
+    "win_stability_profile": "models/win_stability_profile.json",
+    "score_test_predictions": "models\\best_score_test_predictions.csv",
+    "win_test_predictions": "models\\best_win_test_predictions.csv"
+  }
+}

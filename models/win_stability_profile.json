@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "alpha_death": 0.0,
+  "alpha_high_pressure": 0.0,
+  "pressure_rr_gap_threshold": 1.25,
+  "pressure_balls_left_max": 48.0,
+  "source": "best_model_search:all_active_history:hgb_calibrated"
+}

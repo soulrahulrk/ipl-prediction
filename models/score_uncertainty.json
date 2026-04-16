@@ -1,5 +1,6 @@
 {
-  "residual_q10": -33.97440273078692,
-  "residual_q90": 29.842844944251762,
-  "residual_std": 25.65597533581021
+  "residual_q10": -19.26205444335937,
+  "residual_q90": 27.762817382812496,
+  "residual_std": 21.29989699218211,
+  "source": "best_model_search:all_active_history:xgboost_gpu"
 }

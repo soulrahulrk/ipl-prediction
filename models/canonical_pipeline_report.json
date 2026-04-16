@@ -1,0 +1,144 @@
+{
+  "version_id": "v20260415_162508",
+  "created_at_utc": "2026-04-15T16:25:08.427132+00:00",
+  "steps": [
+    "preprocess_ipl.py",
+    "train_best_model_search.py",
+    "train_pre_match.py"
+  ],
+  "step_timings": [
+    {
+      "step": "preprocess_ipl.py",
+      "seconds": 48.55
+    },
+    {
+      "step": "train_best_model_search.py",
+      "seconds": 576.61
+    },
+    {
+      "step": "train_pre_match.py",
+      "seconds": 11.9
+    }
+  ],
+  "consistency": {
+    "ok": true,
+    "checked_at_utc": "2026-04-15T16:25:08.426893+00:00",
+    "checks": [
+      {
+        "name": "deployment_report_exists",
+        "passed": true,
+        "detail": "models\\deployment_report.json"
+      },
+      {
+        "name": "best_search_report_exists",
+        "passed": true,
+        "detail": "models\\best_model_search_report.json"
+      },
+      {
+        "name": "pre_match_report_exists",
+        "passed": true,
+        "detail": "models\\pre_match_model_report.json"
+      },
+      {
+        "name": "score_model_consistent",
+        "passed": true,
+        "detail": "selected=ensemble_ml_top3, deployed=ensemble_ml_top3"
+      },
+      {
+        "name": "win_model_consistent",
+        "passed": true,
+        "detail": "selected=catboost_gpu_calibrated, deployed=catboost_gpu_calibrated"
+      },
+      {
+        "name": "artifact_exists:score_model.pkl",
+        "passed": true,
+        "detail": "models\\score_model.pkl"
+      },
+      {
+        "name": "artifact_fresh:score_model.pkl",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:24:54.037914+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      },
+      {
+        "name": "artifact_exists:win_model.pkl",
+        "passed": true,
+        "detail": "models\\win_model.pkl"
+      },
+      {
+        "name": "artifact_fresh:win_model.pkl",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:24:54.128327+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      },
+      {
+        "name": "artifact_exists:score_uncertainty.json",
+        "passed": true,
+        "detail": "models\\score_uncertainty.json"
+      },
+      {
+        "name": "artifact_fresh:score_uncertainty.json",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:24:53.859046+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      },
+      {
+        "name": "artifact_exists:win_stability_profile.json",
+        "passed": true,
+        "detail": "models\\win_stability_profile.json"
+      },
+      {
+        "name": "artifact_fresh:win_stability_profile.json",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:24:53.860045+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      },
+      {
+        "name": "artifact_exists:deployment_report.json",
+        "passed": true,
+        "detail": "models\\deployment_report.json"
+      },
+      {
+        "name": "artifact_fresh:deployment_report.json",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:24:54.178309+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      },
+      {
+        "name": "artifact_exists:best_model_search_report.json",
+        "passed": true,
+        "detail": "models\\best_model_search_report.json"
+      },
+      {
+        "name": "artifact_fresh:best_model_search_report.json",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:24:54.179317+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      },
+      {
+        "name": "artifact_exists:pre_match_score_model.pkl",
+        "passed": true,
+        "detail": "models\\pre_match_score_model.pkl"
+      },
+      {
+        "name": "artifact_fresh:pre_match_score_model.pkl",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:25:06.409372+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      },
+      {
+        "name": "artifact_exists:pre_match_win_model.pkl",
+        "passed": true,
+        "detail": "models\\pre_match_win_model.pkl"
+      },
+      {
+        "name": "artifact_fresh:pre_match_win_model.pkl",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:25:06.405369+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      },
+      {
+        "name": "artifact_exists:pre_match_model_report.json",
+        "passed": true,
+        "detail": "models\\pre_match_model_report.json"
+      },
+      {
+        "name": "artifact_fresh:pre_match_model_report.json",
+        "passed": true,
+        "detail": "modified=2026-04-15T16:25:06.410374+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+      }
+    ]
+  }
+}

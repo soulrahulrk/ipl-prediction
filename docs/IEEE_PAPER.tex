@@ -1,0 +1,320 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{array}
+
+\title{GPU-Accelerated Live IPL Prediction Using Ball-by-Ball Cricket Data}
+
+\author{
+\IEEEauthorblockN{Rahul}
+\IEEEauthorblockA{
+Independent Project\\
+Email: rahul@example.com
+}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper presents an end-to-end machine learning system for live Indian Premier League (IPL) prediction using ball-by-ball cricket data. The system predicts two outputs from the current match state: projected final innings total and batting-side win probability. Raw Cricsheet IPL files were transformed into a leakage-safe live-state dataset in which every row represents a valid pre-ball match context. The final processed dataset contains 278,705 live-state rows derived from 1,172 IPL matches across 22 seasons, covering April 18, 2008 to March 30, 2026. A total of 53 model input features were used, combining score-state variables, chase pressure, venue history, team form, team-venue form, head-to-head context, batter form, bowler form, batter-versus-bowler signals, and environmental placeholders.
+
+To identify the strongest deployable system, several machine learning and deep learning approaches were compared under a latest-season holdout protocol, with GPU training enabled where supported. The candidate set included HistGradientBoosting, XGBoost, CatBoost, a PyTorch entity-embedding network for tabular data, and weighted ensembles. Two training scopes were evaluated: a recent active-team window and a full active-team history window. The final deployed system used a hybrid design: a PyTorch entity-embedding regressor for score prediction and an isotonic-calibrated CatBoost classifier for win probability estimation. On the held-out 2026 test split of the selected scope, the score model achieved an MAE of 15.36 and an RMSE of 19.81, while the win model achieved a log loss of 0.4922, a Brier score of 0.1681, and an accuracy of 67.12\%.
+\end{abstract}
+
+\begin{IEEEkeywords}
+IPL analytics, cricket prediction, win probability, score forecasting, GPU training, tabular deep learning, CatBoost, PyTorch
+\end{IEEEkeywords}
+
+\section{Introduction}
+Live cricket prediction is a sequential forecasting problem in which the expected innings total and likely winner evolve after every delivery. In T20 cricket, these outputs are influenced by current score, wickets, overs remaining, venue tendencies, chase pressure, team strength, player form, and batter-bowler interactions. A practical model must therefore combine dynamic match-state variables with historical context while avoiding leakage from future matches.
+
+The IPL is an appropriate domain for this problem because it offers a long history of structured ball-by-ball data, stable team identities, and venue diversity. These properties make it possible to construct a delivery-level state dataset suitable for both regression and probabilistic classification.
+
+This work had four goals:
+\begin{enumerate}
+\item build a leakage-safe live-state dataset from raw IPL ball-by-ball files;
+\item compare strong tabular machine learning models with a GPU-trained deep tabular model;
+\item keep only the best-performing score and win models as deployment artifacts; and
+\item expose the final system through practical inference interfaces.
+\end{enumerate}
+
+\section{Related Work}
+Structured cricket data has become increasingly useful for predictive modeling because ball-by-ball archives preserve both event sequences and match metadata. Cricsheet provides such data in standard formats suitable for deterministic preprocessing and state reconstruction \cite{cricsheet-format,cricsheet-matches}.
+
+For tabular machine learning, gradient boosting methods remain strong baselines. XGBoost introduced a scalable, regularized tree-boosting framework optimized for predictive performance \cite{xgboost}. CatBoost improved handling of categorical variables through ordered boosting and category-aware processing \cite{catboost}. These methods are especially relevant for cricket analytics, where teams, venues, phases, and player identities interact with numeric score-state features.
+
+Deep learning on tabular data often fails to outperform boosting, but entity embeddings can be effective when categorical variables are high-cardinality and semantically rich \cite{entity-embeddings}. In cricket prediction, labels such as striker, bowler, batting team, and venue are not interchangeable nominal tokens; they encode useful latent structure. This motivated the inclusion of a PyTorch entity-embedding architecture in the final comparison. PyTorch was used as the implementation framework because of its flexible imperative programming model and mature GPU support \cite{pytorch}.
+
+\section{Problem Formulation}
+Given the current state of an IPL innings, the system predicts:
+\begin{enumerate}
+\item the final innings total, modeled as a regression task; and
+\item the batting side's probability of winning the match, modeled as a probabilistic classification task.
+\end{enumerate}
+
+The predictor must only use information available up to the current ball. For second-innings states, target pressure is part of the input context. Formally, for a feature vector $x_t$ at delivery state $t$, the model estimates:
+\begin{equation}
+\hat{y}^{score}_t = f_{score}(x_t)
+\end{equation}
+and
+\begin{equation}
+\hat{p}^{win}_t = f_{win}(x_t) = P(\text{batting team wins} \mid x_t).
+\end{equation}
+
+\section{Dataset and Feature Engineering}
+\subsection{Raw Data}
+The raw corpus consists of 1,172 IPL match CSV files and 1,172 corresponding \texttt{\_info.csv} files stored under \texttt{data/ipl\_csv2}. Match files contain ball-by-ball events, while metadata files contain match-level information such as date, winner, toss winner, toss decision, and venue.
+
+\subsection{Processed Live-State Dataset}
+The preprocessing pipeline produced \texttt{data/processed/ipl\_features.csv}, a live-state dataset containing:
+\begin{itemize}
+\item 278,705 rows,
+\item 1,172 unique matches,
+\item 22 seasons,
+\item 41 venues,
+\item 15 team labels,
+\item 144,508 first-innings rows, and
+\item 134,197 second-innings rows.
+\end{itemize}
+
+The date range spans April 18, 2008 to March 30, 2026.
+
+\subsection{Leakage-Safe Historical Snapshots}
+The most important preprocessing design choice was temporal correctness. Historical venue strength, team form, team-venue form, matchup form, batter form, bowler form, and batter-versus-bowler context were all computed from prior observations only. Each match and each ball was processed in chronological order, ensuring that no future information was available to earlier rows.
+
+\subsection{Feature Set}
+The deployed live predictor uses 53 input features:
+\begin{itemize}
+\item 10 categorical features: batting team, bowling team, venue, season, innings, phase, toss winner, toss decision, striker, and bowler;
+\item 43 numeric features: current runs, wickets, wickets left, balls left, over progress, recent scoring windows, run rates, target-based chase variables, venue aggregates, team-form variables, player-form variables, and weather placeholders.
+\end{itemize}
+
+This feature design intentionally combines immediate match state with longer-term contextual structure.
+
+\section{Methodology}
+\subsection{Model Families}
+The following score models were compared:
+\begin{itemize}
+\item HistGradientBoostingRegressor,
+\item XGBoost regressor with GPU training where available,
+\item CatBoost regressor with GPU training where available,
+\item PyTorch entity-embedding regressor, and
+\item a weighted ensemble of the top two validation models.
+\end{itemize}
+
+The following win models were compared:
+\begin{itemize}
+\item HistGradientBoostingClassifier,
+\item XGBoost classifier,
+\item CatBoost classifier,
+\item PyTorch entity-embedding classifier,
+\item isotonic-calibrated variants of the above, and
+\item weighted ensemble variants.
+\end{itemize}
+
+\subsection{Deep Tabular Architecture}
+The custom deep learning implementation used learned embeddings for categorical variables, standardized numeric inputs, concatenation of both branches, and a multilayer perceptron with hidden sizes $(256, 128, 64)$ and dropout $0.12$. Separate wrappers were used for regression and classification.
+
+\subsection{Training Scopes}
+Two scope definitions were evaluated:
+\begin{itemize}
+\item \textbf{Recent active history}: active IPL 2026 franchises, seasons 2024--2026 only.
+\item \textbf{All active history}: active IPL 2026 franchises, all available seasons from 2007--2026.
+\end{itemize}
+
+\subsection{Train/Validation/Test Protocol}
+For each scope, a latest-season split was used:
+\begin{itemize}
+\item training: all seasons before the last two,
+\item validation: second-latest season,
+\item testing: latest season.
+\end{itemize}
+
+For the winning scope, the split sizes were:
+\begin{itemize}
+\item score task: 215,682 training rows, 17,184 validation rows, 669 test rows;
+\item win task: 212,060 training rows, 16,620 validation rows, 669 test rows.
+\end{itemize}
+
+\subsection{Selection Rule}
+Because the system predicts both score and win probability, scope selection used a combined criterion:
+\begin{equation}
+\text{Composite} = \text{RMSE}_{score} + 10 \times \text{LogLoss}_{win}.
+\end{equation}
+
+The scope with the lowest composite score was selected, with win Brier score as the tie-break. Within the selected scope:
+\begin{itemize}
+\item the score model with the lowest held-out test RMSE was deployed;
+\item the win model with the lowest held-out test log loss, tie-broken by Brier score, was deployed.
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+The score task was evaluated with mean absolute error (MAE) and root mean squared error (RMSE). The win task was evaluated with log loss, Brier score, and classification accuracy. Probability quality was prioritized over raw accuracy when selecting the final win model.
+
+\section{Experimental Environment}
+The final GPU model search ran on the following local environment:
+\begin{itemize}
+\item GPU: NVIDIA GeForce RTX 3050 6GB Laptop GPU,
+\item GPU memory: 6144 MiB,
+\item NVIDIA driver: 551.76,
+\item Python 3.13.7,
+\item PyTorch 2.6.0+cu124,
+\item scikit-learn 1.7.2,
+\item XGBoost 3.2.0,
+\item CatBoost 1.2.10,
+\item pandas 2.3.3,
+\item NumPy 2.4.4.
+\end{itemize}
+
+\section{Results}
+\subsection{Scope Comparison}
+Table~\ref{tab:scope} summarizes the best results for each scope.
+
+\begin{table}[!t]
+\caption{Best model performance by scope}
+\label{tab:scope}
+\centering
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.55cm}ccccc}
+\toprule
+Scope & Score RMSE & Win Log Loss & Win Brier & Win Acc. \\
+\midrule
+Recent active history & 24.64 & 0.6708 & 0.2389 & 58.74\% \\
+All active history & 19.81 & 0.4922 & 0.1681 & 67.12\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The all-history active-team scope clearly outperformed the recent-only scope and was selected for deployment.
+
+\subsection{Score Model Comparison}
+Table~\ref{tab:score} reports held-out 2026 score prediction results within the selected scope.
+
+\begin{table}[!t]
+\caption{Score model comparison in selected scope}
+\label{tab:score}
+\centering
+\begin{tabular}{lcc}
+\toprule
+Model & MAE & RMSE \\
+\midrule
+HistGradientBoosting & 21.54 & 26.36 \\
+XGBoost GPU & 17.69 & 23.03 \\
+CatBoost GPU & 21.40 & 25.44 \\
+Torch entity GPU & \textbf{15.36} & \textbf{19.81} \\
+Ensemble top-2 & 16.31 & 21.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The PyTorch entity-embedding regressor was the strongest score model by a clear margin.
+
+\subsection{Win Model Comparison}
+Table~\ref{tab:win} reports held-out 2026 win prediction performance in the selected scope.
+
+\begin{table}[!t]
+\caption{Win model comparison in selected scope}
+\label{tab:win}
+\centering
+\begin{tabular}{lccc}
+\toprule
+Model & Log Loss & Brier & Accuracy \\
+\midrule
+HistGradientBoosting raw & 1.2183 & 0.3469 & 50.52\% \\
+XGBoost GPU raw & 1.0950 & 0.3355 & 54.71\% \\
+CatBoost GPU raw & 0.5200 & 0.1754 & 71.15\% \\
+Torch entity GPU raw & 1.0106 & 0.3381 & 53.96\% \\
+HistGradientBoosting calibrated & 0.7477 & 0.2775 & 53.36\% \\
+XGBoost GPU calibrated & 0.7137 & 0.2580 & 53.21\% \\
+CatBoost GPU calibrated & \textbf{0.4922} & \textbf{0.1681} & 67.12\% \\
+Torch entity GPU calibrated & 0.6521 & 0.2356 & 54.56\% \\
+Ensemble top-2 raw & 0.5910 & 0.2099 & 59.79\% \\
+Ensemble top-2 calibrated & 0.6057 & 0.2162 & 59.49\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Although raw CatBoost achieved the highest classification accuracy, the calibrated CatBoost classifier produced the best probability quality by both log loss and Brier score. Since the system is designed to output win probability rather than only a binary label, the calibrated variant was selected for deployment.
+
+\subsection{Final Deployed Models}
+The final deployed system is hybrid:
+\begin{itemize}
+\item \textbf{Score model}: PyTorch entity-embedding regressor.
+\item \textbf{Win model}: isotonic-calibrated CatBoost classifier.
+\end{itemize}
+
+This result is important because it shows that a single model family was not optimal for both tasks.
+
+\subsection{Actual-vs-Predicted Analysis}
+Held-out 2026 predictions were exported for auditability. Each score and win file contains 669 test rows with true values and model outputs. Representative difficult examples include:
+\begin{itemize}
+\item Kolkata Knight Riders vs Mumbai Indians: actual total 220, predicted 156.47 at an early innings state;
+\item Chennai Super Kings vs Rajasthan Royals: actual total 127, predicted 187.90 at an early innings state;
+\item Royal Challengers Bengaluru vs Sunrisers Hyderabad: actual win label 1, predicted win probability 0.199 at the start of the chase.
+\end{itemize}
+
+These cases indicate that the hardest failures occur at high-uncertainty states, especially very early in an innings when realized scoring trajectory is not yet well established.
+
+\section{Deployment and Practical Use}
+The final models were promoted to persistent deployment artifacts and integrated into a shared inference layer used by:
+\begin{itemize}
+\item a command-line predictor,
+\item a Flask web application,
+\item a Streamlit application, and
+\item a Flask JSON API at \texttt{POST /api/predict}.
+\end{itemize}
+
+The live inference response includes point predictions, residual-based score ranges, simulation-based score quantiles, win-probability intervals, venue par context, and chase-pressure context. This makes the system suitable for local analytics workflows beyond offline benchmarking.
+
+\section{Conclusion}
+This work demonstrates that a practical IPL live prediction system can be built from publicly available ball-by-ball cricket data using a leakage-safe preprocessing pipeline and a task-specific model selection workflow. The best deployable solution was not a single universal model but a hybrid system combining deep tabular learning for score prediction and calibrated gradient boosting for win probability estimation.
+
+On the held-out 2026 test split of the selected scope, the final system achieved:
+\begin{itemize}
+\item score MAE: 15.36,
+\item score RMSE: 19.81,
+\item win log loss: 0.4922,
+\item win Brier score: 0.1681,
+\item win accuracy: 67.12\%.
+\end{itemize}
+
+The results show that GPU-enabled comparison across classical and deep tabular models can materially improve IPL live analytics, provided that preprocessing is temporally correct and probability calibration is treated as a first-class requirement.
+
+\section{Future Work}
+The next improvements should focus on stronger cricket-specific signal rather than interface changes:
+\begin{itemize}
+\item explicit playing-XI and squad-strength features,
+\item richer player-recency windows,
+\item separate first-innings and chase-specialist win models,
+\item venue-season interaction features,
+\item stronger pre-match modeling with squad and toss simulation, and
+\item deployment-time calibration monitoring across future seasons.
+\end{itemize}
+
+\begin{thebibliography}{1}
+
+\bibitem{cricsheet-format}
+Cricsheet, ``Ashwin CSV format.'' [Online]. Available: \url{https://cricsheet.org/format/csv_ashwin/}
+
+\bibitem{cricsheet-matches}
+Cricsheet, ``Match data.'' [Online]. Available: \url{https://cricsheet.org/matches/}
+
+\bibitem{xgboost}
+T. Chen and C. Guestrin, ``XGBoost: A scalable tree boosting system,'' in \emph{Proc. 22nd ACM SIGKDD Int. Conf. Knowledge Discovery and Data Mining}, 2016, pp. 785--794. [Online]. Available: \url{https://arxiv.org/abs/1603.02754}
+
+\bibitem{catboost}
+L. Prokhorenkova, G. Gusev, A. Vorobev, A. V. Dorogush, and A. Gulin, ``CatBoost: unbiased boosting with categorical features,'' in \emph{Advances in Neural Information Processing Systems}, vol. 31, 2018. [Online]. Available: \url{https://arxiv.org/abs/1706.09516}
+
+\bibitem{entity-embeddings}
+C. Guo and F. Berkhahn, ``Entity embeddings of categorical variables,'' 2016. [Online]. Available: \url{https://arxiv.org/abs/1604.06737}
+
+\bibitem{pytorch}
+A. Paszke \emph{et al.}, ``PyTorch: An imperative style, high-performance deep learning library,'' in \emph{Advances in Neural Information Processing Systems}, vol. 32, 2019. [Online]. Available: \url{https://arxiv.org/abs/1912.01703}
+
+\end{thebibliography}
+
+\end{document}

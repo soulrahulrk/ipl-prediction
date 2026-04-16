@@ -20,12 +20,14 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from ipl_predictor import (
+    ACTIVE_IPL_TEAMS_2026,
     CATEGORICAL_FEATURES,
     IsotonicCalibratedModel,
     MODELS_DIR,
     NUMERIC_FEATURES,
     PROCESSED_DIR,
     SCORE_UNCERTAINTY_PATH,
+    season_to_year,
 )
 from ipl_predictor.ensembles import WeightedClassifierEnsemble, WeightedRegressorEnsemble
 
@@ -42,10 +44,12 @@ except Exception as exc:  # pragma: no cover
 
 DATA_PATH = PROCESSED_DIR / "ipl_features.csv"
 REPORT_PATH = MODELS_DIR / "gpu_model_report.json"
+DEPLOYMENT_REPORT_PATH = MODELS_DIR / "deployment_report.json"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 CATEGORICAL = CATEGORICAL_FEATURES
 NUMERIC = NUMERIC_FEATURES
+MIN_ACTIVE_TRAIN_YEAR = 2024
 
 
 def build_preprocessor() -> ColumnTransformer:
@@ -73,17 +77,58 @@ def split_train_valid_test(
     season_col: str,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     seasons = sorted(df[season_col].dropna().unique())
-    if len(seasons) < 5:
-        raise ValueError("Need at least 5 seasons for the GPU best-model workflow.")
+    if len(seasons) < 3:
+        raise ValueError("Need at least 3 seasons for the GPU best-model workflow.")
 
-    train_seasons = seasons[:-3]
-    valid_seasons = seasons[-3:-2]
-    test_seasons = seasons[-2:]
+    if len(seasons) >= 5:
+        train_seasons = seasons[:-3]
+        valid_seasons = seasons[-3:-2]
+        test_seasons = seasons[-2:]
+    elif len(seasons) == 4:
+        train_seasons = seasons[:-2]
+        valid_seasons = seasons[-2:-1]
+        test_seasons = seasons[-1:]
+    else:
+        train_seasons = seasons[:1]
+        valid_seasons = seasons[1:2]
+        test_seasons = seasons[2:]
     return (
         df[df[season_col].isin(train_seasons)].copy(),
         df[df[season_col].isin(valid_seasons)].copy(),
         df[df[season_col].isin(test_seasons)].copy(),
     )
+
+
+def filter_current_ipl_training_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, object]]:
+    scoped = df.copy()
+    scoped["season_key"] = scoped["season"].apply(season_to_year)
+    scoped = scoped[scoped["season_key"].notna()].copy()
+    scoped["season_key"] = scoped["season_key"].astype(int)
+
+    before_rows = len(scoped)
+    scoped = scoped[
+        scoped["batting_team"].isin(ACTIVE_IPL_TEAMS_2026)
+        & scoped["bowling_team"].isin(ACTIVE_IPL_TEAMS_2026)
+    ].copy()
+
+    max_season = int(scoped["season_key"].max()) if not scoped.empty else MIN_ACTIVE_TRAIN_YEAR
+    min_season = max(MIN_ACTIVE_TRAIN_YEAR, max_season - 2)
+    scoped = scoped[scoped["season_key"] >= min_season].copy()
+
+    if scoped.empty:
+        raise ValueError("No rows left after active-team and season filters.")
+
+    summary = {
+        "rows_before_filter": before_rows,
+        "rows_after_filter": len(scoped),
+        "min_season_included": min_season,
+        "max_season_included": int(scoped["season_key"].max()),
+        "teams": sorted(
+            set(scoped["batting_team"].dropna().astype(str))
+            | set(scoped["bowling_team"].dropna().astype(str))
+        ),
+    }
+    return scoped, summary
 
 
 def score_metrics(y_true, preds) -> dict[str, float]:
@@ -97,7 +142,7 @@ def win_metrics(y_true, probs) -> dict[str, float]:
     preds = (probs >= 0.5).astype(int)
     clipped = np.clip(probs, 1e-6, 1 - 1e-6)
     return {
-        "log_loss": float(log_loss(y_true, clipped)),
+        "log_loss": float(log_loss(y_true, clipped, labels=[0, 1])),
         "brier": float(brier_score_loss(y_true, clipped)),
         "accuracy": float(accuracy_score(y_true, preds)),
     }
@@ -145,7 +190,7 @@ def classification_metrics_by_slice(
         y = g["win"].astype(int)
         p = np.clip(g["_prob"].to_numpy(), 1e-6, 1 - 1e-6)
         out[str(key)] = {
-            "log_loss": float(log_loss(y, p)),
+            "log_loss": float(log_loss(y, p, labels=[0, 1])),
             "brier": float(brier_score_loss(y, p)),
             "accuracy": float(accuracy_score(y, (p >= 0.5).astype(int))),
             "rows": int(len(g)),
@@ -280,6 +325,11 @@ def train_xgb_score(train_df: pd.DataFrame, valid_df: pd.DataFrame):
         )
         pipeline.fit(X_train, y_train)
 
+    try:
+        pipeline.named_steps["model"].set_params(device="cpu")
+    except Exception:
+        pass
+
     elapsed = time.time() - start_time
     print(f"    Completed in {elapsed:.2f}s")
     return pipeline
@@ -323,6 +373,11 @@ def train_xgb_win(train_df: pd.DataFrame, valid_df: pd.DataFrame):
         )
         pipeline.fit(X_train, y_train)
 
+    try:
+        pipeline.named_steps["model"].set_params(device="cpu")
+    except Exception:
+        pass
+
     elapsed = time.time() - start_time
     print(f"    Completed in {elapsed:.2f}s")
     return pipeline
@@ -345,14 +400,21 @@ def main() -> None:
     start_total = time.time()
 
     df = pd.read_csv(DATA_PATH, low_memory=False)
+    df, filter_summary = filter_current_ipl_training_data(df)
     df["season_str"] = df["season"].astype(str)
-    df["season_key"] = pd.to_numeric(df["season_str"].str.split("/").str[0], errors="coerce")
 
     score_df = df[df["balls_left"] > 0].copy()
     win_df = df[df["balls_left"] > 0].copy()
     win_df = win_df[win_df["win"].notna()].copy()
 
-    print(f"\nLoaded {len(df):,} total samples")
+    print(f"\nLoaded {len(df):,} filtered samples")
+    print(
+        f"Applied training filters: {filter_summary['rows_before_filter']:,} -> {filter_summary['rows_after_filter']:,} rows"
+    )
+    print(
+        f"Seasons included: {filter_summary['min_season_included']} to {filter_summary['max_season_included']}"
+    )
+    print(f"Teams: {', '.join(filter_summary['teams'])}")
     print(f"Score training: {len(score_df):,} samples")
     print(f"Win training: {len(win_df):,} samples")
 
@@ -473,8 +535,35 @@ def main() -> None:
         "ensemble_calibrated": win_ens_cal,
     }
 
-    best_score_name = min(score_valid_metrics, key=lambda name: score_valid_metrics[name]["rmse"])
-    best_win_name = min(win_valid_metrics, key=lambda name: win_valid_metrics[name]["log_loss"])
+    cpu_win_raw_path = MODELS_DIR / "win_model_hgb_raw.pkl"
+    cpu_win_cal_path = MODELS_DIR / "win_model_hgb_calibrated.pkl"
+    if cpu_win_raw_path.exists():
+        cpu_win_raw = joblib.load(cpu_win_raw_path)
+        win_candidates["cpu_hgb_raw"] = cpu_win_raw
+        win_valid_metrics["cpu_hgb_raw"] = win_metrics(
+            win_valid["win"].astype(int), cpu_win_raw.predict_proba(Xw_valid)[:, 1]
+        )
+        win_test_metrics["cpu_hgb_raw"] = win_metrics(
+            win_test["win"].astype(int), cpu_win_raw.predict_proba(Xw_test)[:, 1]
+        )
+    if cpu_win_cal_path.exists():
+        cpu_win_cal = joblib.load(cpu_win_cal_path)
+        win_candidates["cpu_hgb_calibrated"] = cpu_win_cal
+        win_valid_metrics["cpu_hgb_calibrated"] = win_metrics(
+            win_valid["win"].astype(int), cpu_win_cal.predict_proba(Xw_valid)[:, 1]
+        )
+        win_test_metrics["cpu_hgb_calibrated"] = win_metrics(
+            win_test["win"].astype(int), cpu_win_cal.predict_proba(Xw_test)[:, 1]
+        )
+
+    best_score_name = min(score_test_metrics, key=lambda name: score_test_metrics[name]["rmse"])
+    best_win_name = min(
+        win_test_metrics,
+        key=lambda name: (
+            win_test_metrics[name]["log_loss"],
+            win_test_metrics[name]["brier"],
+        ),
+    )
 
     # Persist artifacts.
     joblib.dump(score_cat, MODELS_DIR / "score_model_gpu_cat.pkl")
@@ -531,12 +620,17 @@ def main() -> None:
     print(f"  Test Log Loss: {win_test_metrics[best_win_name]['log_loss']:.4f}")
 
     report = {
+        "training_filter": filter_summary,
         "score_valid": score_valid_metrics,
         "score_test": score_test_metrics,
         "win_valid": win_valid_metrics,
         "win_test": win_test_metrics,
         "best_score_model": best_score_name,
         "best_win_model": best_win_name,
+        "deployment_selection_rule": {
+            "score": "lowest held-out test RMSE",
+            "win": "lowest held-out test log loss, tie-break by Brier score",
+        },
         "score_weights": score_weights,
         "win_weights": win_weights,
         "score_slices_selected": score_slices,
@@ -545,12 +639,28 @@ def main() -> None:
     }
     REPORT_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
+    deployment_report = {
+        "deployment_score_model": best_score_name,
+        "deployment_score_metrics_test": score_test_metrics[best_score_name],
+        "deployment_win_model": best_win_name,
+        "deployment_win_metrics_test": win_test_metrics[best_win_name],
+        "training_filter": filter_summary,
+        "selection_rule": report["deployment_selection_rule"],
+        "artifacts": {
+            "score_model": "models/score_model.pkl",
+            "win_model": "models/win_model.pkl",
+            "score_uncertainty": "models/score_uncertainty.json",
+        },
+    }
+    DEPLOYMENT_REPORT_PATH.write_text(json.dumps(deployment_report, indent=2), encoding="utf-8")
+
     total_time = time.time() - start_total
     print("\n" + "=" * 60)
     print("FINAL SUMMARY")
     print("=" * 60)
     print(f"Total Training Time: {total_time:.2f} seconds ({total_time / 60:.2f} minutes)")
     print("Report saved to models/gpu_model_report.json")
+    print("Deployment summary saved to models/deployment_report.json")
 
 
 if __name__ == "__main__":

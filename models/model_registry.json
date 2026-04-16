@@ -1,0 +1,561 @@
+{
+  "latest_version": "v20260415_162508",
+  "entries": [
+    {
+      "version_id": "v20260415_152209",
+      "created_at_utc": "2026-04-15T15:22:09.344059+00:00",
+      "git_commit": "48b0725",
+      "executed_steps": [
+        "preprocess_ipl.py",
+        "train_best_model_search.py",
+        "train_pre_match.py"
+      ],
+      "metrics": {
+        "live": {
+          "scope": "all_active_history",
+          "score_model": "torch_entity_gpu",
+          "win_model": "catboost_gpu_calibrated",
+          "score_test": {
+            "mae": 15.358278274536133,
+            "rmse": 19.813843112991734
+          },
+          "win_test": {
+            "log_loss": 0.4922242656352928,
+            "brier": 0.16807453000320968,
+            "accuracy": 0.6711509715994021
+          }
+        },
+        "pre_match": {
+          "split": {
+            "train_min_season": 2007,
+            "train_max_season": 2024,
+            "valid_season": 2025,
+            "test_season": 2026,
+            "train_rows": 1076,
+            "valid_rows": 70,
+            "test_rows": 19
+          },
+          "score_test": {
+            "mae": 37.82347213582254,
+            "rmse": 43.878367872824775,
+            "r2": -0.631297953718319
+          },
+          "win_test": {
+            "accuracy": 0.5263157894736842,
+            "log_loss": 0.6916365334206266,
+            "brier": 0.24925645575812072
+          }
+        },
+        "selected_win_stability": {
+          "base_win_model": "catboost_gpu_raw",
+          "stable_variant": "catboost_gpu_raw_stable",
+          "use_stable_variant": true,
+          "profile": {
+            "alpha_death": 0.0,
+            "alpha_high_pressure": 0.0,
+            "pressure_rr_gap_threshold": 1.25,
+            "pressure_balls_left_max": 48,
+            "valid_objective_before": 0.7652914642453725,
+            "valid_objective_after": 0.7652914642453725,
+            "valid_metrics_before": {
+              "log_loss": 0.5678005249674013,
+              "brier": 0.19415352256373752,
+              "accuracy": 0.6896510228640192
+            },
+            "valid_metrics_after": {
+              "log_loss": 0.5678005249674013,
+              "brier": 0.19415352256373752,
+              "accuracy": 0.6896510228640192
+            },
+            "valid_slice_metrics_before": {
+              "death_over": {
+                "log_loss": 0.4880023231396816,
+                "brier": 0.1592701140351784,
+                "accuracy": 0.7775617883921133,
+                "rows": 3601
+              },
+              "high_pressure_chase": {
+                "log_loss": 0.37235690525581194,
+                "brier": 0.11182325316527975,
+                "accuracy": 0.8658294778585591,
+                "rows": 1513
+              },
+              "overall_difficult": {
+                "log_loss": 0.4810511739811732,
+                "brier": 0.1564368437468082,
+                "accuracy": 0.7837259100642399,
+                "rows": 4203
+              }
+            },
+            "valid_slice_metrics_after": {
+              "death_over": {
+                "log_loss": 0.4880023231396816,
+                "brier": 0.1592701140351784,
+                "accuracy": 0.7775617883921133,
+                "rows": 3601
+              },
+              "high_pressure_chase": {
+                "log_loss": 0.37235690525581194,
+                "brier": 0.11182325316527975,
+                "accuracy": 0.8658294778585591,
+                "rows": 1513
+              },
+              "overall_difficult": {
+                "log_loss": 0.4810511739811732,
+                "brier": 0.1564368437468082,
+                "accuracy": 0.7837259100642399,
+                "rows": 4203
+              }
+            }
+          },
+          "test_slice_metrics_before": {
+            "death_over": {
+              "log_loss": 0.5475805211687491,
+              "brier": 0.18078718500979507,
+              "accuracy": 0.7377220480668757,
+              "rows": 957
+            },
+            "high_pressure_chase": {
+              "log_loss": 0.5776082477173495,
+              "brier": 0.1764004826219706,
+              "accuracy": 0.8247422680412371,
+              "rows": 291
+            },
+            "overall_difficult": {
+              "log_loss": 0.5488993802633332,
+              "brier": 0.1802910372126847,
+              "accuracy": 0.7465309898242368,
+              "rows": 1081
+            }
+          },
+          "test_slice_metrics_after": {
+            "death_over": {
+              "log_loss": 0.5475805211687491,
+              "brier": 0.18078718500979507,
+              "accuracy": 0.7377220480668757,
+              "rows": 957
+            },
+            "high_pressure_chase": {
+              "log_loss": 0.5776082477173495,
+              "brier": 0.1764004826219706,
+              "accuracy": 0.8247422680412371,
+              "rows": 291
+            },
+            "overall_difficult": {
+              "log_loss": 0.5488993802633332,
+              "brier": 0.1802910372126847,
+              "accuracy": 0.7465309898242368,
+              "rows": 1081
+            }
+          }
+        }
+      },
+      "artifacts": [
+        {
+          "path": "models\\score_model.pkl",
+          "exists": true,
+          "size_bytes": 13318643,
+          "sha256": "d944f41f942cf8bf8dff2cb145ce8cd5888cd0dda6cdf04317deb1696222b430",
+          "modified_utc": "2026-04-15T15:22:01.625566+00:00"
+        },
+        {
+          "path": "models\\win_model.pkl",
+          "exists": true,
+          "size_bytes": 26318494,
+          "sha256": "73e80676a8886170a3e4dda02395ebb2092c1b5dd75a135e20cb0f33a3b2bfc2",
+          "modified_utc": "2026-04-15T15:22:01.716395+00:00"
+        },
+        {
+          "path": "models\\pre_match_score_model.pkl",
+          "exists": true,
+          "size_bytes": 433745,
+          "sha256": "2ad2d8bc1787d57317ddd424f1e9a007e571afd53c1a2872dffa046e3b1a1914",
+          "modified_utc": "2026-04-15T15:22:09.037914+00:00"
+        },
+        {
+          "path": "models\\pre_match_win_model.pkl",
+          "exists": true,
+          "size_bytes": 433057,
+          "sha256": "2c303dcd33a76c1be5328c263576e93ca008a7e34fc5de7d1b9772c95466fa5a",
+          "modified_utc": "2026-04-15T15:22:09.030797+00:00"
+        },
+        {
+          "path": "models\\score_uncertainty.json",
+          "exists": true,
+          "size_bytes": 186,
+          "sha256": "07423f21d6ee7427bde0dd6dc50da9c7c9cbaf437c7a1465a36b125abf54ca96",
+          "modified_utc": "2026-04-15T15:22:01.542048+00:00"
+        },
+        {
+          "path": "models\\win_stability_profile.json",
+          "exists": true,
+          "size_bytes": 221,
+          "sha256": "d6d39b7d7401c47f04f9d993fdb55ba50c6a45a90d3618bdafd33ca9bfb1e10a",
+          "modified_utc": "2026-04-15T15:22:01.542048+00:00"
+        },
+        {
+          "path": "models\\deployment_report.json",
+          "exists": true,
+          "size_bytes": 1509,
+          "sha256": "7a2eea5e241a86597518f02d42d72ccf6da9f0a50ced0022d500ad9889aeeebf",
+          "modified_utc": "2026-04-08T17:35:12.650247+00:00"
+        },
+        {
+          "path": "models\\best_model_search_report.json",
+          "exists": true,
+          "size_bytes": 35576,
+          "sha256": "3184eecb2edb3e6304b4a21f66f966ebe050619f49ebe23f9bef68201b8b3ea8",
+          "modified_utc": "2026-04-15T15:22:01.729422+00:00"
+        },
+        {
+          "path": "models\\pre_match_model_report.json",
+          "exists": true,
+          "size_bytes": 1277,
+          "sha256": "b1e2e97c83f8f030311812aa86391d7aa62a5758725429bb1c7450bc16ad2c34",
+          "modified_utc": "2026-04-15T15:22:09.037914+00:00"
+        }
+      ]
+    },
+    {
+      "version_id": "v20260415_162508",
+      "created_at_utc": "2026-04-15T16:25:08.431654+00:00",
+      "git_commit": "48b0725",
+      "executed_steps": [
+        "preprocess_ipl.py",
+        "train_best_model_search.py",
+        "train_pre_match.py"
+      ],
+      "metrics": {
+        "live": {
+          "scope": "all_active_history",
+          "score_model": "ensemble_ml_top3",
+          "win_model": "catboost_gpu_calibrated",
+          "score_test": {
+            "mae": 16.042810027425823,
+            "rmse": 23.53831445052873,
+            "weighted_mae": 15.31943763496408,
+            "weighted_rmse": 22.512330447003475,
+            "weighted_abs_error_p90": 36.0809488303336,
+            "robust_objective": 20.951176798483296
+          },
+          "win_test": {
+            "log_loss": 0.6198582541697044,
+            "brier": 0.1990901662091343,
+            "accuracy": 0.6945251396648044
+          }
+        },
+        "pre_match": {
+          "split": {
+            "train_min_season": 2007,
+            "train_max_season": 2024,
+            "valid_season": 2025,
+            "test_season": 2026,
+            "train_rows": 1076,
+            "valid_rows": 70,
+            "test_rows": 19
+          },
+          "score_test": {
+            "mae": 36.444024755874246,
+            "rmse": 41.14706953284497,
+            "r2": -0.434531808699681
+          },
+          "win_test": {
+            "accuracy": 0.2631578947368421,
+            "log_loss": 0.8435644035221529,
+            "brier": 0.3208935579249358
+          }
+        },
+        "selected_win_stability": {
+          "base_win_model": "catboost_gpu_calibrated",
+          "stable_variant": "catboost_gpu_calibrated_stable",
+          "use_stable_variant": false,
+          "profile": {
+            "alpha_death": 0.0,
+            "alpha_high_pressure": 0.0,
+            "pressure_rr_gap_threshold": 1.25,
+            "pressure_balls_left_max": 48.0,
+            "valid_objective_before": 0.7540660864448314,
+            "valid_objective_after": 0.7540660864448314,
+            "valid_metrics_before": {
+              "log_loss": 0.5590289694009878,
+              "brier": 0.19195822486671946,
+              "accuracy": 0.6936823104693141
+            },
+            "valid_metrics_after": {
+              "log_loss": 0.5590289694009878,
+              "brier": 0.19195822486671946,
+              "accuracy": 0.6936823104693141
+            },
+            "valid_slice_metrics_before": {
+              "death_over": {
+                "log_loss": 0.4820085474518209,
+                "brier": 0.15841763335414893,
+                "accuracy": 0.7622882532629826,
+                "rows": 3601
+              },
+              "high_pressure_chase": {
+                "log_loss": 0.36068892036812217,
+                "brier": 0.11131310546630896,
+                "accuracy": 0.8374091209517515,
+                "rows": 1513
+              },
+              "overall_difficult": {
+                "log_loss": 0.47498109518238757,
+                "brier": 0.15583285743853925,
+                "accuracy": 0.7661194384963121,
+                "rows": 4203
+              }
+            },
+            "valid_slice_metrics_after": {
+              "death_over": {
+                "log_loss": 0.4820085474518209,
+                "brier": 0.15841763335414893,
+                "accuracy": 0.7622882532629826,
+                "rows": 3601
+              },
+              "high_pressure_chase": {
+                "log_loss": 0.36068892036812217,
+                "brier": 0.11131310546630896,
+                "accuracy": 0.8374091209517515,
+                "rows": 1513
+              },
+              "overall_difficult": {
+                "log_loss": 0.47498109518238757,
+                "brier": 0.15583285743853925,
+                "accuracy": 0.7661194384963121,
+                "rows": 4203
+              }
+            }
+          },
+          "test_slice_metrics_before": {
+            "death_over": {
+              "log_loss": 0.7033133977935692,
+              "brier": 0.18072619287080666,
+              "accuracy": 0.7053291536050157,
+              "rows": 957
+            },
+            "high_pressure_chase": {
+              "log_loss": 1.1288943015954331,
+              "brier": 0.18512475111636406,
+              "accuracy": 0.8144329896907216,
+              "rows": 291
+            },
+            "overall_difficult": {
+              "log_loss": 0.6880996074700025,
+              "brier": 0.18004271460329896,
+              "accuracy": 0.7178538390379279,
+              "rows": 1081
+            }
+          },
+          "test_slice_metrics_after": {
+            "death_over": {
+              "log_loss": 0.7033133977935692,
+              "brier": 0.18072619287080666,
+              "accuracy": 0.7053291536050157,
+              "rows": 957
+            },
+            "high_pressure_chase": {
+              "log_loss": 1.1288943015954331,
+              "brier": 0.18512475111636406,
+              "accuracy": 0.8144329896907216,
+              "rows": 291
+            },
+            "overall_difficult": {
+              "log_loss": 0.6880996074700025,
+              "brier": 0.18004271460329896,
+              "accuracy": 0.7178538390379279,
+              "rows": 1081
+            }
+          }
+        }
+      },
+      "consistency": {
+        "ok": true,
+        "checked_at_utc": "2026-04-15T16:25:08.426893+00:00",
+        "checks": [
+          {
+            "name": "deployment_report_exists",
+            "passed": true,
+            "detail": "models\\deployment_report.json"
+          },
+          {
+            "name": "best_search_report_exists",
+            "passed": true,
+            "detail": "models\\best_model_search_report.json"
+          },
+          {
+            "name": "pre_match_report_exists",
+            "passed": true,
+            "detail": "models\\pre_match_model_report.json"
+          },
+          {
+            "name": "score_model_consistent",
+            "passed": true,
+            "detail": "selected=ensemble_ml_top3, deployed=ensemble_ml_top3"
+          },
+          {
+            "name": "win_model_consistent",
+            "passed": true,
+            "detail": "selected=catboost_gpu_calibrated, deployed=catboost_gpu_calibrated"
+          },
+          {
+            "name": "artifact_exists:score_model.pkl",
+            "passed": true,
+            "detail": "models\\score_model.pkl"
+          },
+          {
+            "name": "artifact_fresh:score_model.pkl",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:24:54.037914+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          },
+          {
+            "name": "artifact_exists:win_model.pkl",
+            "passed": true,
+            "detail": "models\\win_model.pkl"
+          },
+          {
+            "name": "artifact_fresh:win_model.pkl",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:24:54.128327+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          },
+          {
+            "name": "artifact_exists:score_uncertainty.json",
+            "passed": true,
+            "detail": "models\\score_uncertainty.json"
+          },
+          {
+            "name": "artifact_fresh:score_uncertainty.json",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:24:53.859046+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          },
+          {
+            "name": "artifact_exists:win_stability_profile.json",
+            "passed": true,
+            "detail": "models\\win_stability_profile.json"
+          },
+          {
+            "name": "artifact_fresh:win_stability_profile.json",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:24:53.860045+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          },
+          {
+            "name": "artifact_exists:deployment_report.json",
+            "passed": true,
+            "detail": "models\\deployment_report.json"
+          },
+          {
+            "name": "artifact_fresh:deployment_report.json",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:24:54.178309+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          },
+          {
+            "name": "artifact_exists:best_model_search_report.json",
+            "passed": true,
+            "detail": "models\\best_model_search_report.json"
+          },
+          {
+            "name": "artifact_fresh:best_model_search_report.json",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:24:54.179317+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          },
+          {
+            "name": "artifact_exists:pre_match_score_model.pkl",
+            "passed": true,
+            "detail": "models\\pre_match_score_model.pkl"
+          },
+          {
+            "name": "artifact_fresh:pre_match_score_model.pkl",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:25:06.409372+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          },
+          {
+            "name": "artifact_exists:pre_match_win_model.pkl",
+            "passed": true,
+            "detail": "models\\pre_match_win_model.pkl"
+          },
+          {
+            "name": "artifact_fresh:pre_match_win_model.pkl",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:25:06.405369+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          },
+          {
+            "name": "artifact_exists:pre_match_model_report.json",
+            "passed": true,
+            "detail": "models\\pre_match_model_report.json"
+          },
+          {
+            "name": "artifact_fresh:pre_match_model_report.json",
+            "passed": true,
+            "detail": "modified=2026-04-15T16:25:06.410374+00:00, run_started=2026-04-15T16:14:29.626808+00:00"
+          }
+        ]
+      },
+      "canonical_report": "models\\canonical_pipeline_report.json",
+      "artifacts": [
+        {
+          "path": "models\\score_model.pkl",
+          "exists": true,
+          "size_bytes": 13452219,
+          "sha256": "cd964cf3c84b4a05b170a178c0281cd3a939b9d6cbf62cfc812daff4a4e60f7c",
+          "modified_utc": "2026-04-15T16:24:54.037914+00:00"
+        },
+        {
+          "path": "models\\win_model.pkl",
+          "exists": true,
+          "size_bytes": 26320681,
+          "sha256": "819fd666104610384aee16b9ecb683170e639dcaa6b06ba0556de2780fabeb3b",
+          "modified_utc": "2026-04-15T16:24:54.128327+00:00"
+        },
+        {
+          "path": "models\\pre_match_score_model.pkl",
+          "exists": true,
+          "size_bytes": 7402,
+          "sha256": "c8f60e9e7aa5995e243300165f9520105442902bbe5338283b21b3c809719c3f",
+          "modified_utc": "2026-04-15T16:25:06.409372+00:00"
+        },
+        {
+          "path": "models\\pre_match_win_model.pkl",
+          "exists": true,
+          "size_bytes": 7706,
+          "sha256": "991b72b8c67ca8ecca4b1cc8f5b7f7509b4c6f19d2d297f5c213d6beb26d75bd",
+          "modified_utc": "2026-04-15T16:25:06.405369+00:00"
+        },
+        {
+          "path": "models\\score_uncertainty.json",
+          "exists": true,
+          "size_bytes": 191,
+          "sha256": "6844a00af77d4b53fd39c9de6a5dc47ec0e0db4bcc820d620cc0b1b417f6a97d",
+          "modified_utc": "2026-04-15T16:24:53.859046+00:00"
+        },
+        {
+          "path": "models\\win_stability_profile.json",
+          "exists": true,
+          "size_bytes": 229,
+          "sha256": "16ce27916930631a547d6a79e16a9d7ae504efbd4043ceac5defe9c3fa5fd70a",
+          "modified_utc": "2026-04-15T16:24:53.860045+00:00"
+        },
+        {
+          "path": "models\\deployment_report.json",
+          "exists": true,
+          "size_bytes": 1883,
+          "sha256": "27ac97c0a4858be8c7b47ad41645f1847e335ccbd565a5e031e52986002d142e",
+          "modified_utc": "2026-04-15T16:24:54.178309+00:00"
+        },
+        {
+          "path": "models\\best_model_search_report.json",
+          "exists": true,
+          "size_bytes": 29111,
+          "sha256": "aa02346542b50db20e0adf76daa3cce55effcabc4b214fc5d4c6e0dad71127b8",
+          "modified_utc": "2026-04-15T16:24:54.179317+00:00"
+        },
+        {
+          "path": "models\\pre_match_model_report.json",
+          "exists": true,
+          "size_bytes": 2745,
+          "sha256": "268bfd74fd0bff0f9605c435a14e91e8baac7fb65aecde470c6c5c09ffcc0b88",
+          "modified_utc": "2026-04-15T16:25:06.410374+00:00"
+        }
+      ]
+    }
+  ]
+}

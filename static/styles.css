@@ -60,6 +60,13 @@ h1 {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
 }
 
+.split-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
 .result {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -92,6 +99,15 @@ h1 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.form h2 {
+  margin-top: 0;
+}
+
+.small-copy {
+  color: var(--muted);
+  margin-top: 8px;
 }
 
 label {
@@ -148,6 +164,10 @@ input::placeholder {
 @media (max-width: 640px) {
   .page {
     padding: 32px 18px 60px;
+  }
+
+  .split-layout {
+    grid-template-columns: 1fr;
   }
 
   .result .value {

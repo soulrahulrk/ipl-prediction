@@ -1,150 +1,160 @@
-# API Documentation
+# API
 
-## Prediction Function Contract
+## Python Entry Points
 
-### `ipl_predictor.common.predict_match()`
+### Live prediction
 
-Main prediction function for a live match state.
+Functions:
 
-**Signature:**
-```python
-def predict_match(
-    batting_team: str,
-    bowling_team: str,
-    venue: str,
-    overs_bowled: float,
-    runs: int,
-    wickets_lost: int
-) -> dict[str, Any]
-```
+- ipl_predictor.load_models()
+- ipl_predictor.load_support_tables()
+- ipl_predictor.predict_match_state(payload, support_tables, score_model, win_model)
 
-**Parameters:**
-- `batting_team`: Name of the batting team (will be normalized via TEAM_ALIASES)
-- `bowling_team`: Name of the bowling team (will be normalized via TEAM_ALIASES)
-- `venue`: Venue name (will be normalized via VENUE_ALIASES)
-- `overs_bowled`: Overs completed (0-20 for T20)
-- `runs`: Runs scored so far
-- `wickets_lost`: Wickets lost
+Required payload fields:
 
-**Returns:**
-```python
-{
-    "predicted_score": float,      # Predicted final innings total
-    "win_probability": float,      # Probability batting team wins (0-1)
-    "match_phase": str,            # "Powerplay", "Middle", or "Death"
-    "venue_par": float,            # Historical venue average
-    "required_rr": float,          # Required run rate to reach predicted_score
-    "current_rr": float,           # Current run rate
-    "rr_pressure": float,          # Required RR - current RR
-    "confidence": dict             # Model confidence metrics
-}
-```
+- season
+- venue
+- batting_team
+- bowling_team
+- innings
+- runs
+- wickets
+- overs
 
----
+Conditionally required:
 
-## Feature Set Definition
+- first_innings_total when innings is 2
 
-### Input Features Used
-The model expects these features for a live match:
+Useful optional fields:
 
-1. **Team Features**
-   - `batting_team_home` (binary)
-   - `batting_team_form` (recent average runs scored)
-   - `bowling_team_form` (recent average runs conceded)
-   - `matchup_form` (team vs team historical average)
+- striker
+- bowler
+- runs_last_5
+- wickets_last_5
+- toss_winner
+- toss_decision
+- use_live_weather
+- batting_team_form
+- bowling_team_form
 
-2. **Venue Features**
-   - `venue_par` (historical average score at venue)
-   - `is_neutral` (binary)
+Returns:
 
-3. **Temporal Features**
-   - `over` (current over number)
-   - `ball_in_over` (0-5)
-   - `innings_progress` (runs / typical score ratio)
+- Tuple of (prediction, errors)
+- prediction is None when validation fails
 
-4. **Match State Features**
-   - `runs` (runs scored)
-   - `wickets_lost` (wickets gone)
-   - `legal_balls` (balls bowled, accounting for wides/no-balls)
-   - `match_phase` (categorical: Powerplay, Middle, Death)
-   - `overs_bowled` (overs completed)
-   - `target_remaining` (for 2nd innings)
-   - `required_rr_minus_current_rr` (RR pressure)
+Prediction dictionary includes keys such as:
 
----
+- predicted_total
+- win_prob
+- win_prob_raw
+- win_prob_pct
+- win_prob_band
+- win_stability_flags
+- phase
+- venue_par_score
+- runs_vs_par
+- projected_range
+- simulated_median
+- collapse_risk_pct
+- big_finish_chance_pct
+- temperature_c
+- dew_risk
 
-## Model Selection
+### Pre-match prediction
 
-### Score Prediction
-- **Algorithm**: HistGradientBoostingRegressor
-- **Path**: `models/score_model.pkl`
-- **MAE**: 18.47 runs
-- **RMSE**: 25.01 runs
-- **Reason**: Fastest CPU baseline, beats GPU alternatives on held-out data
+Functions:
 
-### Win Probability
-- **Algorithm**: CatBoostClassifier (GPU)
-- **Path**: `models/win_model.pkl`
-- **Accuracy**: 70.1%
-- **Log Loss**: 0.547
-- **Reason**: GPU acceleration improves generalization for classification
+- ipl_predictor.load_pre_match_models()
+- ipl_predictor.predict_pre_match(team1, team2, venue, score_model, win_model)
 
----
+Return keys:
 
-## Example Usage
+- predicted_score
+- exact_predicted_score
+- team1
+- team2
+- team1_win_prob
+- team2_win_prob
+- likely_winner
 
-### CLI
-```bash
-python predict_cli.py
-```
+## Flask HTTP API
 
-### Python Module
-```python
-from ipl_predictor.common import predict_match
+### POST /api/predict
 
-result = predict_match(
-    batting_team="Mumbai Indians",
-    bowling_team="Chennai Super Kings",
-    venue="Wankhede Stadium",
-    overs_bowled=12.3,
-    runs=87,
-    wickets_lost=2
-)
+Purpose:
 
-print(f"Predicted Score: {result['predicted_score']}")
-print(f"Win Probability: {result['win_probability']:.1%}")
-```
+- Run a live prediction from JSON or form payload
 
-### Flask
-POST to `/api/predict`:
+Success response example:
+
 ```json
 {
-    "batting_team": "Mumbai Indians",
-    "bowling_team": "Chennai Super Kings",
-    "venue": "Wankhede Stadium",
-    "overs_bowled": 12.3,
-    "runs": 87,
-    "wickets_lost": 2
+  "ok": true,
+  "prediction": {
+    "predicted_total": "171.2",
+    "win_prob": "0.738",
+    "win_prob_pct": "73.8%"
+  }
 }
 ```
 
-### Streamlit
-```bash
-streamlit run streamlit_app.py
+Validation failure example:
+
+```json
+{
+  "ok": false,
+  "errors": [
+    "Venue is required."
+  ]
+}
 ```
 
----
+### GET /api/monitoring
 
-## Support Tables
+Purpose:
 
-The model depends on preprocessed historical data:
+- Return latest production drift-check report generated from logged prediction events.
 
-- `data/processed/venue_stats.csv` - Venue averages computed time-correctly
-- `data/processed/team_form_latest.csv` - Recent team averages
-- `data/processed/team_venue_form_latest.csv` - Team performance at specific venues
-- `data/processed/matchup_form_latest.csv` - Historical team-vs-team matchups
+Optional query:
 
-These are generated by:
-```bash
-python scripts/preprocess_ipl.py
+- `refresh=true` to recompute drift report immediately.
+
+Example success response (truncated):
+
+```json
+{
+  "ok": true,
+  "monitoring": {
+    "status": "stable",
+    "events_used": 500,
+    "feature_drift": {
+      "runs": {
+        "z_score": 0.84,
+        "warning": false
+      }
+    }
+  }
+}
 ```
+
+## Model Artifacts
+
+Live deployment artifacts:
+
+- models/score_model.pkl
+- models/win_model.pkl
+- models/score_uncertainty.json
+- models/win_stability_profile.json
+
+Optional pre-match artifacts:
+
+- models/pre_match_score_model.pkl
+- models/pre_match_win_model.pkl
+- models/pre_match_model_report.json
+
+Promotion reports:
+
+- models/deployment_report.json
+- models/best_model_search_report.json
+- models/production_drift_report.json
+- models/model_registry.json

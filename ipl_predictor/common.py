@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 import joblib
 import numpy as np
@@ -29,6 +29,7 @@ BATTER_FORM_PATH = PROCESSED_DIR / "batter_form_latest.csv"
 BOWLER_FORM_PATH = PROCESSED_DIR / "bowler_form_latest.csv"
 BATTER_BOWLER_FORM_PATH = PROCESSED_DIR / "batter_bowler_form_latest.csv"
 SCORE_UNCERTAINTY_PATH = MODELS_DIR / "score_uncertainty.json"
+WIN_STABILITY_PROFILE_PATH = MODELS_DIR / "win_stability_profile.json"
 ACTIVE_TEAMS_2026_PATH = PROCESSED_DIR / "active_teams_2026.csv"
 TEAM_PLAYER_POOL_2026_PATH = PROCESSED_DIR / "team_player_pool_2026.csv"
 
@@ -192,6 +193,19 @@ NUMERIC_FEATURES = [
 
 MODEL_FEATURES = CATEGORICAL_FEATURES + NUMERIC_FEATURES
 
+PRE_MATCH_CATEGORICAL_FEATURES = ["batting_team", "bowling_team", "venue"]
+PRE_MATCH_NUMERIC_FEATURES = [
+    "batting_team_form",
+    "bowling_team_form",
+    "batting_team_venue_form",
+    "bowling_team_venue_form",
+    "batting_vs_bowling_form",
+    "venue_avg_first_innings",
+    "venue_avg_second_innings",
+    "venue_bat_first_win_rate",
+]
+PRE_MATCH_MODEL_FEATURES = PRE_MATCH_CATEGORICAL_FEATURES + PRE_MATCH_NUMERIC_FEATURES
+
 
 @dataclass(frozen=True)
 class SupportTables:
@@ -280,6 +294,78 @@ def load_score_uncertainty_profile() -> dict[str, float]:
         return default_profile
 
 
+def load_win_stability_profile() -> dict[str, float | bool | str]:
+    default_profile: dict[str, float | bool | str] = {
+        "enabled": False,
+        "alpha_death": 0.0,
+        "alpha_high_pressure": 0.0,
+        "pressure_rr_gap_threshold": 1.25,
+        "pressure_balls_left_max": 48.0,
+        "source": "default",
+    }
+    if not WIN_STABILITY_PROFILE_PATH.exists():
+        return default_profile
+
+    try:
+        data = json.loads(WIN_STABILITY_PROFILE_PATH.read_text(encoding="utf-8"))
+        return {
+            "enabled": bool(data.get("enabled", default_profile["enabled"])),
+            "alpha_death": float(data.get("alpha_death", default_profile["alpha_death"])),
+            "alpha_high_pressure": float(data.get("alpha_high_pressure", default_profile["alpha_high_pressure"])),
+            "pressure_rr_gap_threshold": float(
+                data.get("pressure_rr_gap_threshold", default_profile["pressure_rr_gap_threshold"])
+            ),
+            "pressure_balls_left_max": float(
+                data.get("pressure_balls_left_max", default_profile["pressure_balls_left_max"])
+            ),
+            "source": str(data.get("source", default_profile["source"])),
+        }
+    except Exception:
+        return default_profile
+
+
+def _shrink_toward_even(prob: float, alpha: float) -> float:
+    clipped = float(np.clip(prob, 1e-6, 1 - 1e-6))
+    a = float(np.clip(alpha, 0.0, 0.95))
+    return float(np.clip(0.5 + (clipped - 0.5) * (1.0 - a), 1e-6, 1 - 1e-6))
+
+
+def apply_win_stability_adjustment(
+    prob: float,
+    row: pd.Series,
+    profile: Mapping[str, Any],
+) -> tuple[float, list[str]]:
+    adjusted = float(np.clip(prob, 1e-6, 1 - 1e-6))
+    flags: list[str] = []
+
+    if not bool(profile.get("enabled", False)):
+        return adjusted, flags
+
+    phase = str(row.get("phase", "")).lower()
+    innings = int(float(row.get("innings", 0))) if not pd.isna(row.get("innings", np.nan)) else 0
+    rr_gap = float(row.get("required_minus_current_rr", np.nan))
+    balls_left = float(row.get("balls_left", np.nan))
+
+    if phase == "death":
+        adjusted = _shrink_toward_even(adjusted, float(profile.get("alpha_death", 0.0)))
+        flags.append("death_over")
+
+    rr_threshold = float(profile.get("pressure_rr_gap_threshold", 1.25))
+    balls_max = float(profile.get("pressure_balls_left_max", 48.0))
+    high_pressure = (
+        innings == 2
+        and not np.isnan(rr_gap)
+        and rr_gap >= rr_threshold
+        and not np.isnan(balls_left)
+        and balls_left <= balls_max
+    )
+    if high_pressure:
+        adjusted = _shrink_toward_even(adjusted, float(profile.get("alpha_high_pressure", 0.0)))
+        flags.append("high_pressure_chase")
+
+    return float(np.clip(adjusted, 1e-6, 1 - 1e-6)), flags
+
+
 def score_interval(
     predicted_total: float,
     current_runs: float,
@@ -340,42 +426,57 @@ def simulate_remaining_innings(
 def load_support_tables() -> SupportTables:
     venue_stats: dict[str, dict[str, float]] = {}
     if VENUE_STATS_PATH.exists():
-        venue_stats = pd.read_csv(VENUE_STATS_PATH).set_index("venue").to_dict(orient="index")
+        venue_stats = cast(
+            dict[str, dict[str, float]],
+            pd.read_csv(VENUE_STATS_PATH).set_index("venue").to_dict(orient="index"),
+        )
 
     team_form_map: dict[str, float] = {}
     if TEAM_FORM_PATH.exists():
-        team_form_map = pd.read_csv(TEAM_FORM_PATH).set_index("team")["team_form"].to_dict()
+        team_form_map = cast(
+            dict[str, float],
+            pd.read_csv(TEAM_FORM_PATH).set_index("team")["team_form"].to_dict(),
+        )
 
     team_venue_form_map: dict[tuple[str, str], float] = {}
     if TEAM_VENUE_FORM_PATH.exists():
-        team_venue_form_map = (
+        team_venue_form_map = cast(
+            dict[tuple[str, str], float],
             pd.read_csv(TEAM_VENUE_FORM_PATH)
             .set_index(["team", "venue"])["team_venue_form"]
-            .to_dict()
+            .to_dict(),
         )
 
     matchup_form_map: dict[tuple[str, str], float] = {}
     if MATCHUP_FORM_PATH.exists():
-        matchup_form_map = (
+        matchup_form_map = cast(
+            dict[tuple[str, str], float],
             pd.read_csv(MATCHUP_FORM_PATH)
             .set_index(["team", "opponent"])["matchup_form"]
-            .to_dict()
+            .to_dict(),
         )
 
     batter_form_map: dict[str, dict[str, float]] = {}
     if BATTER_FORM_PATH.exists():
-        batter_form_map = pd.read_csv(BATTER_FORM_PATH).set_index("batter").to_dict(orient="index")
+        batter_form_map = cast(
+            dict[str, dict[str, float]],
+            pd.read_csv(BATTER_FORM_PATH).set_index("batter").to_dict(orient="index"),
+        )
 
     bowler_form_map: dict[str, dict[str, float]] = {}
     if BOWLER_FORM_PATH.exists():
-        bowler_form_map = pd.read_csv(BOWLER_FORM_PATH).set_index("bowler").to_dict(orient="index")
+        bowler_form_map = cast(
+            dict[str, dict[str, float]],
+            pd.read_csv(BOWLER_FORM_PATH).set_index("bowler").to_dict(orient="index"),
+        )
 
     batter_bowler_map: dict[tuple[str, str], dict[str, float]] = {}
     if BATTER_BOWLER_FORM_PATH.exists():
-        batter_bowler_map = (
+        batter_bowler_map = cast(
+            dict[tuple[str, str], dict[str, float]],
             pd.read_csv(BATTER_BOWLER_FORM_PATH)
             .set_index(["batter", "bowler"])
-            .to_dict(orient="index")
+            .to_dict(orient="index"),
         )
 
     return SupportTables(
@@ -451,15 +552,23 @@ def build_feature_frame(
     else:
         phase = "death"
 
-    runs_last_5 = coerce_float(payload.get("runs_last_5"), default=0.0)
-    wickets_last_5 = coerce_float(payload.get("wickets_last_5"), default=0.0)
-    runs_last_6_balls = coerce_float(payload.get("runs_last_6_balls"), default=runs_last_5 / 5.0)
-    wickets_last_6_balls = coerce_float(payload.get("wickets_last_6_balls"), default=wickets_last_5 / 5.0)
-    runs_last_12_balls = coerce_float(payload.get("runs_last_12_balls"), default=2.0 * runs_last_6_balls)
-    wickets_last_12_balls = coerce_float(
+    runs_last_5_value = coerce_float(payload.get("runs_last_5"), default=0.0)
+    wickets_last_5_value = coerce_float(payload.get("wickets_last_5"), default=0.0)
+    runs_last_5 = 0.0 if runs_last_5_value is None else runs_last_5_value
+    wickets_last_5 = 0.0 if wickets_last_5_value is None else wickets_last_5_value
+
+    runs_last_6_value = coerce_float(payload.get("runs_last_6_balls"), default=runs_last_5 / 5.0)
+    wickets_last_6_value = coerce_float(payload.get("wickets_last_6_balls"), default=wickets_last_5 / 5.0)
+    runs_last_6_balls = 0.0 if runs_last_6_value is None else runs_last_6_value
+    wickets_last_6_balls = 0.0 if wickets_last_6_value is None else wickets_last_6_value
+
+    runs_last_12_value = coerce_float(payload.get("runs_last_12_balls"), default=2.0 * runs_last_6_balls)
+    wickets_last_12_value = coerce_float(
         payload.get("wickets_last_12_balls"),
         default=2.0 * wickets_last_6_balls,
     )
+    runs_last_12_balls = 0.0 if runs_last_12_value is None else runs_last_12_value
+    wickets_last_12_balls = 0.0 if wickets_last_12_value is None else wickets_last_12_value
 
     target = None
     required_run_rate = None
@@ -472,7 +581,11 @@ def build_feature_frame(
             overs_left = balls_left / 6
             required_run_rate = ((target - runs) / overs_left) if overs_left > 0 else 0.0
 
-    venue_strength = support_tables.venue_stats.get(venue, DEFAULT_VENUE_STRENGTH)
+    venue_key = venue or ""
+    batting_team_key = batting_team or "Unknown"
+    bowling_team_key = bowling_team or "Unknown"
+
+    venue_strength = support_tables.venue_stats.get(venue_key, DEFAULT_VENUE_STRENGTH)
     venue_par_total = (
         venue_strength["venue_avg_first_innings"]
         if innings == 1
@@ -485,11 +598,11 @@ def build_feature_frame(
     if toss_winner:
         toss_winner_batting = 1.0 if toss_winner == batting_team else 0.0
 
-    default_batting_form = float(support_tables.team_form_map.get(batting_team, 0.5))
-    default_bowling_form = float(support_tables.team_form_map.get(bowling_team, 0.5))
-    default_batting_venue_form = float(support_tables.team_venue_form_map.get((batting_team, venue), 0.5))
-    default_bowling_venue_form = float(support_tables.team_venue_form_map.get((bowling_team, venue), 0.5))
-    default_matchup_form = float(support_tables.matchup_form_map.get((batting_team, bowling_team), 0.5))
+    default_batting_form = float(support_tables.team_form_map.get(batting_team_key, 0.5))
+    default_bowling_form = float(support_tables.team_form_map.get(bowling_team_key, 0.5))
+    default_batting_venue_form = float(support_tables.team_venue_form_map.get((batting_team_key, venue_key), 0.5))
+    default_bowling_venue_form = float(support_tables.team_venue_form_map.get((bowling_team_key, venue_key), 0.5))
+    default_matchup_form = float(support_tables.matchup_form_map.get((batting_team_key, bowling_team_key), 0.5))
 
     batter_stats = support_tables.batter_form_map.get(striker, {})
     bowler_stats = support_tables.bowler_form_map.get(bowler, {})
@@ -639,16 +752,38 @@ def predict_match_state(
     batting_team = normalize_team(payload.get("batting_team", ""))
     row = features.iloc[0]
     predicted_total = score_model.predict(features)[0]
-    win_prob = win_model.predict_proba(features)[0][1]
+    raw_win_prob = float(win_model.predict_proba(features)[0][1])
+    win_stability_profile = load_win_stability_profile()
+    win_prob, stability_flags = apply_win_stability_adjustment(raw_win_prob, row, win_stability_profile)
     uncertainty_profile = load_score_uncertainty_profile()
     lower, upper = score_interval(predicted_total, float(row["runs"]), uncertainty_profile)
     sim = simulate_remaining_innings(row, float(predicted_total), float(win_prob), uncertainty_profile)
 
+    monitoring_event_id = ""
+
+    try:
+        from .monitoring import track_prediction_event
+
+        monitoring_event_id = track_prediction_event(
+            payload=payload,
+            row=row,
+            predicted_total=float(predicted_total),
+            raw_win_prob=float(raw_win_prob),
+            adjusted_win_prob=float(win_prob),
+            stability_flags=stability_flags,
+            stability_profile_source=str(win_stability_profile.get("source", "default")),
+        )
+    except Exception:
+        # Monitoring must never break inference.
+        pass
+
     return {
         "predicted_total": f"{predicted_total:.1f}",
         "win_prob": f"{win_prob:.3f}",
+        "win_prob_raw": f"{raw_win_prob:.3f}",
         "win_prob_pct": f"{100.0 * win_prob:.1f}%",
         "win_prob_band": f"{100.0 * sim['sim_win_prob_p10']:.1f}% - {100.0 * sim['sim_win_prob_p90']:.1f}%",
+        "win_stability_flags": ", ".join(stability_flags) if stability_flags else "none",
         "batting_team": batting_team or "",
         "phase": str(row["phase"]).title(),
         "venue_par_score": f"{float(row['venue_avg_first_innings'] if int(row['innings']) == 1 else row['venue_avg_second_innings']):.1f}",
@@ -673,7 +808,31 @@ def predict_match_state(
             if pd.isna(row["required_minus_current_rr"])
             else f"{float(row['required_minus_current_rr']):+.2f}"
         ),
+        "monitoring_event_id": monitoring_event_id,
     }, []
+
+
+def _build_pre_match_features(team1: str, team2: str, venue: str, support_tables: SupportTables) -> pd.DataFrame:
+    batting_team = normalize_team(team1) or team1
+    bowling_team = normalize_team(team2) or team2
+    venue_name = normalize_venue(venue) or venue
+
+    venue_strength = support_tables.venue_stats.get(venue_name, DEFAULT_VENUE_STRENGTH)
+
+    row = {
+        "batting_team": batting_team,
+        "bowling_team": bowling_team,
+        "venue": venue_name,
+        "batting_team_form": float(support_tables.team_form_map.get(batting_team, 0.5)),
+        "bowling_team_form": float(support_tables.team_form_map.get(bowling_team, 0.5)),
+        "batting_team_venue_form": float(support_tables.team_venue_form_map.get((batting_team, venue_name), 0.5)),
+        "bowling_team_venue_form": float(support_tables.team_venue_form_map.get((bowling_team, venue_name), 0.5)),
+        "batting_vs_bowling_form": float(support_tables.matchup_form_map.get((batting_team, bowling_team), 0.5)),
+        "venue_avg_first_innings": float(venue_strength.get("venue_avg_first_innings", 0.0)),
+        "venue_avg_second_innings": float(venue_strength.get("venue_avg_second_innings", 0.0)),
+        "venue_bat_first_win_rate": float(venue_strength.get("venue_bat_first_win_rate", 0.0)),
+    }
+    return pd.DataFrame([row])[PRE_MATCH_MODEL_FEATURES]
 
 
 def predict_pre_match(
@@ -682,33 +841,24 @@ def predict_pre_match(
     venue: str,
     score_model,
     win_model,
-) -> dict[str, str]:
-    """Provides a pre-match prediction using the dedicated DL models."""
+    support_tables: SupportTables | None = None,
+) -> dict[str, str | float]:
+    """Provides pre-match score and win estimates using dedicated pre-match models."""
     if not score_model or not win_model:
-        return {"error": "Pre-match DL models not found."}
+        return {"error": "Pre-match models not found."}
 
-    # Format the input data required by the pipeline
-    features = pd.DataFrame([{
-        "batting_team": team1,
-        "bowling_team": team2,
-        "venue": venue,
-    }])
-    
-    # Predict the score (assuming team1 is batting first)
-    predicted_score = score_model.predict(features)[0]
-    
-    # Predict the win probability
-    # win_prob yields probability that team1 wins
-    win_prob = win_model.predict_proba(features)[0][1]
+    support = support_tables if support_tables is not None else load_support_tables()
+    features = _build_pre_match_features(team1=team1, team2=team2, venue=venue, support_tables=support)
 
-    # Decide likely winner
-    if win_prob > 0.5:
-        likely_winner = team1
-    else:
-        likely_winner = team2
+    predicted_score = float(score_model.predict(features)[0])
+    win_prob = float(np.clip(win_model.predict_proba(features)[0][1], 1e-6, 1 - 1e-6))
+
+    likely_winner = team1 if win_prob >= 0.5 else team2
+    low = max(0.0, predicted_score - 12.0)
+    high = predicted_score + 12.0
 
     return {
-        "predicted_score": f"{predicted_score:.0f} - {predicted_score + 15:.0f}",
+        "predicted_score": f"{low:.0f} - {high:.0f}",
         "exact_predicted_score": f"{predicted_score:.1f}",
         "team1": team1,
         "team2": team2,

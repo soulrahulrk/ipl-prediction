@@ -8,14 +8,18 @@ import pytest
 
 from ipl_predictor.common import (
     MODEL_FEATURES,
+    PRE_MATCH_SCORE_MODEL_PATH,
+    PRE_MATCH_WIN_MODEL_PATH,
     SCORE_MODEL_PATH,
     WIN_MODEL_PATH,
     SupportTables,
     build_feature_frame,
     load_models,
+    load_pre_match_models,
     normalize_team,
     normalize_venue,
     parse_overs,
+    predict_pre_match,
     predict_match_state,
 )
 from scripts.preprocess_ipl import build_historical_venue_stats
@@ -183,3 +187,58 @@ def test_model_loading_when_artifacts_exist():
     score_model, win_model = load_models()
     assert hasattr(score_model, "predict")
     assert hasattr(win_model, "predict_proba")
+
+
+def test_real_saved_models_can_run_live_prediction():
+    if not SCORE_MODEL_PATH.exists() or not WIN_MODEL_PATH.exists():
+        pytest.skip("Live model artifacts are not available in this workspace")
+
+    score_model, win_model = load_models()
+    support_tables = SupportTables(
+        venue_stats={},
+        team_form_map={},
+        team_venue_form_map={},
+        matchup_form_map={},
+        batter_form_map={},
+        bowler_form_map={},
+        batter_bowler_map={},
+    )
+    payload = {
+        "season": "2026",
+        "venue": "Wankhede Stadium",
+        "batting_team": "Mumbai Indians",
+        "bowling_team": "Chennai Super Kings",
+        "innings": 1,
+        "runs": 92,
+        "wickets": 2,
+        "overs": "10.2",
+        "runs_last_5": 41,
+        "wickets_last_5": 1,
+        "striker": "Rohit Sharma",
+        "bowler": "Matheesha Pathirana",
+        "use_live_weather": False,
+    }
+
+    prediction, errors = predict_match_state(payload, support_tables, score_model, win_model)
+    assert not errors
+    assert prediction is not None
+    assert float(prediction["predicted_total"]) >= float(payload["runs"])
+    assert 0.0 <= float(prediction["win_prob"]) <= 1.0
+
+
+def test_real_saved_models_can_run_pre_match_prediction():
+    if not PRE_MATCH_SCORE_MODEL_PATH.exists() or not PRE_MATCH_WIN_MODEL_PATH.exists():
+        pytest.skip("Pre-match model artifacts are not available in this workspace")
+
+    score_model, win_model = load_pre_match_models()
+    prediction = predict_pre_match(
+        team1="Mumbai Indians",
+        team2="Chennai Super Kings",
+        venue="Wankhede Stadium",
+        score_model=score_model,
+        win_model=win_model,
+    )
+    assert "error" not in prediction
+    assert prediction["likely_winner"] in {"Mumbai Indians", "Chennai Super Kings"}
+    assert prediction["team1"] == "Mumbai Indians"
+    assert prediction["team2"] == "Chennai Super Kings"

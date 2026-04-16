@@ -1,76 +1,50 @@
-# Change Log
+# Changelog
 
-## [0.1.0] - March 30, 2026
+## 2026-04-09
+
+### Changed (Historical)
+
+- Rewrote README to match current code paths, training scripts, and promoted artifact flow.
+- Updated setup and run instructions for CLI, Flask, Streamlit, and all training workflows.
+- Added current deployment snapshot details from models/deployment_report.json.
+
+### Documentation (Historical)
+
+- Replaced docs/API.md with an updated live and pre-match contract reference.
+- Replaced docs/ARCHITECTURE.md to reflect the current multi-workflow training and promotion design.
+- Removed stale statements that conflicted with current scripts.
+
+## 2026-04-08
+
+### Changed
+
+- Added and iterated on deployment-selection reporting.
+- Expanded training scripts to compare candidate model families and write deployment summaries.
 
 ### Added
-- Core IPL prediction system for score and win probability
-- Centralized feature engineering in `ipl_predictor/common.py`
-- CPU baseline training on HistGradientBoosting
-- GPU-accelerated training on CatBoost/XGBoost with RTX 3050
-- Three prediction interfaces: CLI, Flask, Streamlit
-- Time-correct feature preprocessing to prevent information leakage
-- Historical support tables: venue stats, team form, team-venue form, matchups
-- API documentation in `docs/API.md`
-- Architecture documentation in `docs/ARCHITECTURE.md`
-- Project hygiene: `.gitignore`, `requirements.txt`, `pyproject.toml`
 
-### Score Prediction
-- HistGradientBoostingRegressor baseline
-- MAE: 18.47 runs on held-out test
-- RMSE: 25.01 runs on held-out test
+- Flask JSON route: POST /api/predict
+- Flask pre-match UI flow
+- tests for:
+  - real saved-model live inference
+  - real saved-model pre-match inference
+  - Flask /api/predict
 
-### Win Probability Prediction
-- CatBoostClassifier on GPU
-- Accuracy: 70.1% on held-out test
-- Log Loss: 0.547
-- Brier Score: 0.186
+### Documentation
 
-### Fixed Issues
-- **Venue stat leakage**: Snapshots now taken before each match to prevent future information leakage
-- **Code duplication**: Common logic centralized to prevent drift between CLI/Flask/Streamlit
-- **Machine-specific paths**: All paths now relative and portable
-- **Missing dependencies**: Full list in `requirements.txt` and `pyproject.toml`
+- Rewrote README and core docs to match the actual code and current metrics.
+- Removed stale references to the old predict_match API and outdated leaderboard claims.
 
-### Known Limitations
-- No player-level features (would improve predictions significantly)
-- No playing-XI data (current lineup vs season average)
-- No match condition features (dew, day/night, weather)
-- Single model per task (could benefit from per-phase or per-venue specialists)
-- No uncertainty quantification (point predictions only)
+### Current Deployment Artifacts
 
----
+- models/score_model.pkl
+- models/win_model.pkl
 
-## Next Planned Improvements
+### Current Deployment Metrics
 
-1. **Player-Level Features**
-   - Batter recent form (last 5 innings)
-   - Bowler recent form (last 5 spells)
-   - Batter-vs-bowler historical matchups
+- Metrics captured in the corresponding model report files generated at run time.
 
-2. **Match Condition Features**
-   - Dew indicator
-   - Day/night effect
-   - Venue surface recency
+### Notes
 
-3. **Specialist Models**
-   - First innings score model (different dynamics than chases)
-   - Phase-specific models (Powerplay/Middle/Death)
-   - Venue-specialist models for high-variance grounds
-
-4. **Uncertainty Quantification**
-   - Prediction intervals instead of point estimates
-   - Model confidence scores
-   - Calibration analysis
-
-5. **Feature Monitoring**
-   - Track feature drift over seasons
-   - Alert when team forms change significantly
-   - Model performance tracking by phase/phase
-
----
-
-## Version History
-
-| Version | Date | Key Changes |
-|---------|------|------------|
-| 0.1.0 | Mar 30, 2026 | Initial implementation with CPU/GPU training |
+- Deployment win-model selection currently optimizes held-out probability quality, not raw classification accuracy.
+- The recent-season win task remains the weakest part of the project.
