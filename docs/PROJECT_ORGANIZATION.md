@@ -1,6 +1,6 @@
 # Project Organization Guide
 
-Last updated: 2026-04-15
+Last updated: 2026-04-23
 
 This document is the single source of truth for:
 
@@ -19,6 +19,7 @@ This document is the single source of truth for:
 | scripts/archive | Archived legacy training scripts | Not part of active training flow |
 | models | Trained artifacts and evaluation reports | Deployment artifacts and model reports |
 | docs | Technical and project documentation | Architecture, API, summaries, report assets |
+| docs/reports | Generated project report documents | Generated DOCX outputs from report scripts |
 | notebooks | EDA and analysis notebooks | Exploration only, not production entry points |
 | notebooks/archive | Archived experimental notebooks | Kept for historical reference |
 | tests | Unit and API tests | Validates inference contract and app behavior |
@@ -72,12 +73,24 @@ This document is the single source of truth for:
 - New training or data scripts -> scripts
 - Shared reusable code -> ipl_predictor
 - Permanent docs -> docs
+- Generated project report outputs -> docs/reports
 - Temporary analysis notes -> docs/project-notes
 - Experimental notebooks -> notebooks
 - Production model artifacts/reports -> models
 - Archived scripts/notebooks -> scripts/archive and notebooks/archive
 
-## 6) Notes On Legacy/Compatibility Files
+## 6) Main Top-Level Entry Files
+
+Keep these in the project root for quick run access:
+
+- web_app.py
+- streamlit_app.py
+- predict_cli.py
+- README.md
+- pyproject.toml
+- requirements.txt
+
+## 7) Notes On Legacy/Compatibility Files
 
 - ipl_colab.csv is a legacy dataset used for earlier EDA and compatibility checks.
 - Keep it in place unless all references are explicitly migrated.

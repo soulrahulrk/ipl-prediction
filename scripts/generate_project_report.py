@@ -19,16 +19,24 @@ from docx.shared import Inches, Pt
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DOCS_DIR = ROOT_DIR / "docs"
+REPORTS_DIR = DOCS_DIR / "reports"
 PROCESSED_DIR = ROOT_DIR / "data" / "processed"
 RAW_DIR = ROOT_DIR / "data" / "ipl_csv2"
 MODELS_DIR = ROOT_DIR / "models"
-OUTPUT_PATH = DOCS_DIR / "IPL_Prediction_Project_Report.docx"
+OUTPUT_PATH = REPORTS_DIR / "IPL_Prediction_Project_Report.docx"
 ASSETS_DIR = DOCS_DIR / "report_assets"
 
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from ipl_predictor import load_models, load_pre_match_models, load_support_tables, predict_match_state, predict_pre_match
+from ipl_predictor import (
+    CATEGORICAL_FEATURES,
+    load_models,
+    load_pre_match_models,
+    load_support_tables,
+    predict_match_state,
+    predict_pre_match,
+)
 
 BODY_FONT = "Cambria"
 CODE_FONT = "Consolas"
@@ -68,14 +76,19 @@ class TableSpec:
 FIGURES = [
     FigureSpec("Figure 4.1", "End-to-End IPL Prediction Pipeline", "figure_4_1_pipeline.png"),
     FigureSpec("Figure 4.2", "Live Model Comparison on the Selected Test Scope", "figure_4_2_model_comparison.png"),
+    FigureSpec("Figure 4.3", "Feature Family Composition of the Live Prediction Inputs", "figure_4_3_feature_mix.png"),
     FigureSpec("Figure 5.1", "Top IPL Venues by Historical First-Innings Average", "figure_5_1_venue_stats.png"),
     FigureSpec("Figure 5.2", "Residual Uncertainty Band Used for Projected Score Range", "figure_5_2_uncertainty.png"),
+    FigureSpec("Figure 5.3", "Phase-wise Scoring Behaviour in the Engineered Dataset", "figure_5_3_phase_scoring.png"),
+    FigureSpec("Figure 5.4", "Held-Out Score Error Distribution of the Deployed Regressor", "figure_5_4_score_error_distribution.png"),
+    FigureSpec("Figure 5.5", "Held-Out Win Probability Calibration Snapshot", "figure_5_5_win_calibration.png"),
     FigureSpec("Figure 6.1", "Engineered Dataset Coverage Dashboard", "figure_6_1_dataset_dashboard.png"),
     FigureSpec("Figure 6.2", "Flask Live Prediction Interface Mockup", "figure_6_2_flask_mockup.png"),
     FigureSpec("Figure 6.3", "Streamlit Analytics Dashboard Mockup", "figure_6_3_streamlit_mockup.png"),
     FigureSpec("Figure 6.4", "JSON API Request and Response Snapshot", "figure_6_4_api_snapshot.png"),
     FigureSpec("Figure 6.5", "CLI Live Prediction Output Snapshot", "figure_6_5_cli_snapshot.png"),
     FigureSpec("Figure 6.6", "Test and Artifact Verification Snapshot", "figure_6_6_validation_snapshot.png"),
+    FigureSpec("Figure 6.7", "Production Monitoring and Drift Snapshot", "figure_6_7_monitoring_snapshot.png"),
 ]
 
 TABLES = [
@@ -99,6 +112,9 @@ CHAPTER_4_TABLES = {
     "module_inventory": TableSpec("Table 4.6", "Core Project Modules and Responsibilities"),
     "workflow_inventory": TableSpec("Table 4.7", "Training, Promotion, and Serving Workflows"),
     "api_contract": TableSpec("Table 4.8", "Core Live API Fields and Returned Analytics"),
+    "preprocessing_rules": TableSpec("Table 4.9", "Normalization and Leakage-Control Rules Applied During Preprocessing"),
+    "notebook_inventory": TableSpec("Table 4.10", "Notebook Inventory and Their Roles in the Project Lifecycle"),
+    "dependency_roles": TableSpec("Table 4.11", "Primary Dependencies and Their Responsibilities in the Project"),
 }
 
 CHAPTER_5_TABLES = {
@@ -114,6 +130,12 @@ CHAPTER_5_TABLES = {
     "pre_match_scenarios": TableSpec("Table 5.14", "Scenario-Based Pre-Match Inference Walkthrough"),
     "score_case_studies": TableSpec("Table 5.15", "Largest Held-Out Score Misses from the Promoted Regressor"),
     "win_case_studies": TableSpec("Table 5.16", "Highest Log-Loss Cases from the Promoted Classifier"),
+    "phase_summary": TableSpec("Table 5.17", "Phase-wise Match Behaviour in the Engineered Dataset"),
+    "score_wicket_summary": TableSpec("Table 5.18", "Held-Out Score Error by Wicket-State Bucket"),
+    "pre_match_metrics": TableSpec("Table 5.19", "Pre-Match Model Validation and Test Performance"),
+    "win_calibration_bins": TableSpec("Table 5.20", "Held-Out Win Probability Calibration Bins"),
+    "experiment_versions": TableSpec("Table 5.21", "Versioned Experiment Snapshots from the Model Registry"),
+    "drift_summary": TableSpec("Table 5.22", "Production Monitoring and Drift Readiness Snapshot"),
 }
 
 APPENDIX_TABLES = {
@@ -125,6 +147,10 @@ APPENDIX_TABLES = {
     "artifact_inventory": TableSpec("Table A.7", "Model Artifact Inventory in the Workspace"),
     "source_inventory": TableSpec("Table A.8", "Source File Inventory and Approximate Line Counts"),
     "test_inventory": TableSpec("Table A.9", "Automated Test Inventory and Coverage Focus"),
+    "notebook_inventory": TableSpec("Table A.10", "Notebook Inventory with Cell Counts and Roles"),
+    "dependency_inventory": TableSpec("Table A.11", "Dependency Inventory and Project Usage"),
+    "version_inventory": TableSpec("Table A.12", "Versioned Model Registry Snapshot"),
+    "workspace_map": TableSpec("Table A.13", "Top-Level Workspace Directory Map"),
 }
 
 ALL_TABLES = (
@@ -136,6 +162,44 @@ ALL_TABLES = (
     + list(APPENDIX_TABLES.values())
     + [TABLES[10]]
 )
+
+DEPENDENCY_ROLE_NOTES = {
+    "numpy": "Vectorized numerical operations used in feature processing and metric computation.",
+    "pandas": "Tabular data ingestion, joins, grouping, and report-side analytics.",
+    "scikit-learn": "Classical ML models, evaluation metrics, calibration helpers, and preprocessing utilities.",
+    "joblib": "Persistence and reload of fitted classical-model artifacts.",
+    "Flask": "Web application layer and JSON API endpoint for live prediction.",
+    "streamlit": "Interactive analytics dashboard for project demonstration and inspection.",
+    "xgboost": "Gradient-boosting benchmark for high-performance structured-data modeling.",
+    "catboost": "Categorical-friendly boosting model used in the live win-probability search.",
+    "pytest": "Automated verification of inference utilities and web routes.",
+    "matplotlib": "Generation of report figures and lightweight interface mockups.",
+    "python-docx": "Programmatic creation of the final academic report in `.docx` format.",
+    "pillow": "Image support layer required by the report-generation stack.",
+}
+
+PREPROCESSING_RULES = [
+    ("Alias normalization", "Maps team and venue name variants to canonical labels before feature generation.", "Prevents duplicate identities and mismatched support-table joins."),
+    ("Chronological sorting", "Processes matches and balls in time order using match date and legal-ball position.", "Ensures every historical feature only uses earlier evidence."),
+    ("Legal-ball conversion", "Converts over.ball notation into legal balls bowled, over number, and ball-in-over fields.", "Makes phase logic and remaining-balls calculations deterministic."),
+    ("Rolling momentum windows", "Builds recent scoring windows such as last over, last two overs, and last five overs.", "Captures acceleration and collapse behaviour without future leakage."),
+    ("Chase-only target features", "Populates target, target remaining, and required-rate fields only for second innings.", "Keeps first-innings rows semantically clean and avoids fabricated targets."),
+    ("Support-table materialization", "Writes venue, team, player, and matchup summaries into separate processed CSV files.", "Improves reuse, speeds inference, and centralizes cricket logic."),
+    ("Active-team filtering", "Restricts final comparison scopes to the active 2026 IPL team set.", "Balances historical depth with modern franchise relevance."),
+    ("Artifact version checks", "Cross-checks reports and saved models after training through the pipeline registry.", "Reduces the risk of documenting stale or inconsistent artifacts."),
+]
+
+WORKSPACE_MAP = [
+    ("data", "Raw CSV2 files, processed feature tables, support tables, and weather snapshots."),
+    ("docs", "Generated report assets, LaTeX paper draft, summaries, and the final `.docx` output."),
+    ("ipl_predictor", "Shared inference, calibration, monitoring, online-learning, and torch model modules."),
+    ("models", "Saved live and pre-match artifacts, prediction exports, and JSON reports."),
+    ("notebooks", "Exploratory analysis, preprocessing notebooks, and model-comparison experiments."),
+    ("scripts", "Reproducible command-line workflows for preprocessing, training, reporting, and data refresh."),
+    ("static", "Shared CSS assets for the Flask frontend."),
+    ("templates", "HTML templates for the Flask interface."),
+    ("tests", "Pytest suites for the common prediction path and web routes."),
+]
 
 SUPPORT_TABLE_DESCRIPTIONS = {
     "ipl_features.csv": ("Main training frame", "Ball-by-ball match-state rows used for live score and win modeling.", "match_id + innings + legal_balls_bowled"),
@@ -665,6 +729,25 @@ def generate_uncertainty_figure(score_uncertainty: dict, path: Path) -> None:
     plt.close(fig)
 
 
+def generate_feature_mix_figure(context: dict, path: Path) -> None:
+    feature_rows = context["feature_family_rows"]
+    labels = [row["group"] for row in feature_rows]
+    counts = [row["count"] for row in feature_rows]
+    colors = ["#1d4ed8", "#2563eb", "#0f766e", "#ea580c", "#7c3aed", "#475569"]
+
+    fig, ax = plt.subplots(figsize=(10.5, 4.8))
+    ax.barh(labels, counts, color=colors[: len(labels)])
+    ax.invert_yaxis()
+    ax.set_xlabel("Number of input features")
+    ax.set_title("Live Prediction Input Families")
+    for idx, value in enumerate(counts):
+        ax.text(value + 0.2, idx, str(value), va="center", fontsize=9)
+    ax.grid(axis="x", alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
 def get_score_metrics_map(scope_report: dict) -> dict:
     return scope_report.get("score_test") or scope_report.get("score_valid") or {}
 
@@ -687,6 +770,115 @@ def get_selected_score_metrics(scope_report: dict) -> dict:
 
 def get_selected_win_metrics(scope_report: dict) -> dict:
     return scope_report.get("best_win_metrics_test") or scope_report.get("selected_win_metrics_valid") or {}
+
+
+def prettify_model_name(model_name: str) -> str:
+    mapping = {
+        "hgb": "HistGradientBoosting",
+        "hgb_calibrated": "HistGradientBoosting (calibrated)",
+        "xgboost_gpu": "XGBoost GPU",
+        "xgboost_gpu_calibrated": "XGBoost GPU (calibrated)",
+        "catboost_gpu": "CatBoost GPU",
+        "catboost_gpu_calibrated": "CatBoost GPU (calibrated)",
+        "torch_entity_gpu": "Torch entity-embedding model",
+        "torch_entity_gpu_calibrated": "Torch entity-embedding model (calibrated)",
+        "ensemble_ml_top3": "Weighted ML ensemble",
+        "ensemble_top2": "Top-2 weighted ensemble",
+        "ensemble_top2_calibrated": "Top-2 weighted ensemble (calibrated)",
+    }
+    return mapping.get(model_name, model_name.replace("_", " "))
+
+
+def describe_score_model(model_name: str) -> str:
+    if "torch" in model_name:
+        return (
+            f"The current promoted live score model is `{model_name}`. This family learns dense embeddings for categorical "
+            "inputs such as teams, venues, strikers, and bowlers, then combines them with normalized numeric match-state "
+            "features in a multilayer perceptron. In the project context, this architecture is valuable because it can "
+            "represent rich cricket identities without exploding the dimensionality of the feature space."
+        )
+    if "ensemble" in model_name:
+        return (
+            f"The current promoted live score model is `{model_name}`. Rather than relying on a single learner, it blends "
+            "the strongest classical models from the search report so that complementary error patterns partially cancel "
+            "out. This is a practical engineering choice when multiple tabular models are individually strong but none is "
+            "dominant across every scoring regime."
+        )
+    if "xgboost" in model_name:
+        return (
+            f"The current promoted live score model is `{model_name}`. XGBoost is a strong gradient-boosting approach for "
+            "tabular prediction because it can capture nonlinear interactions among score state, venue context, and player "
+            "form while remaining efficient enough for repeated retraining."
+        )
+    if "catboost" in model_name:
+        return (
+            f"The current promoted live score model is `{model_name}`. CatBoost is particularly effective when categorical "
+            "structure matters, which is useful in IPL data where teams, venues, and player identities carry predictive "
+            "signal alongside numeric match-state variables."
+        )
+    return (
+        f"The current promoted live score model is `{model_name}`. It was selected from the project benchmark because it "
+        "offered the best tradeoff between held-out score accuracy, robustness, and deployment readiness for the current workspace."
+    )
+
+
+def describe_win_model(model_name: str) -> str:
+    if "catboost" in model_name:
+        return (
+            f"The current promoted live win model is `{model_name}`. CatBoost handles mixed categorical and numeric inputs "
+            "well, and the calibrated variant is especially useful when the report cares about probability quality rather "
+            "than only hard classification accuracy."
+        )
+    if "xgboost" in model_name:
+        return (
+            f"The current promoted live win model is `{model_name}`. In this project it serves as a high-capacity boosting "
+            "baseline whose calibrated probabilities can be compared directly with CatBoost and HistGradientBoosting."
+        )
+    if "ensemble" in model_name:
+        return (
+            f"The current promoted live win model is `{model_name}`. The ensemble design smooths out model-specific biases "
+            "and is useful when different classifiers perform well on different chase-pressure scenarios."
+        )
+    return (
+        f"The current promoted live win model is `{model_name}`. It was retained because its held-out probabilities were "
+        "the most dependable among the alternatives considered in the benchmark."
+    )
+
+
+def build_effective_deployment_report(
+    raw_deployment_report: dict,
+    best_search_report: dict,
+    model_registry: dict,
+) -> dict:
+    latest_version = model_registry.get("latest_version")
+    latest_entry = None
+    for entry in model_registry.get("entries", []):
+        if entry.get("version_id") == latest_version:
+            latest_entry = entry
+            break
+    if latest_entry is None and model_registry.get("entries"):
+        latest_entry = model_registry["entries"][-1]
+
+    if latest_entry and latest_entry.get("metrics", {}).get("live"):
+        live_metrics = latest_entry["metrics"]["live"]
+        return {
+            "deployment_scope": live_metrics.get("scope", best_search_report.get("selected_scope")),
+            "deployment_score_model": live_metrics.get("score_model", raw_deployment_report.get("deployment_score_model")),
+            "deployment_score_metrics_test": live_metrics.get(
+                "score_test",
+                raw_deployment_report.get("deployment_score_metrics_test", {}),
+            ),
+            "deployment_win_model": live_metrics.get("win_model", raw_deployment_report.get("deployment_win_model")),
+            "deployment_win_metrics_test": live_metrics.get(
+                "win_test",
+                raw_deployment_report.get("deployment_win_metrics_test", {}),
+            ),
+            "selection_rule": raw_deployment_report.get("selection_rule", best_search_report.get("selection_rule", {})),
+            "artifacts": raw_deployment_report.get("artifacts", {}),
+            "version_id": latest_entry.get("version_id"),
+            "created_at_utc": latest_entry.get("created_at_utc"),
+        }
+    return raw_deployment_report
 
 
 def add_card(ax, x: float, y: float, w: float, h: float, title: str, lines: list[str], facecolor: str = "#ffffff") -> None:
@@ -967,6 +1159,149 @@ def generate_validation_snapshot(context: dict, path: Path) -> None:
     plt.close(fig)
 
 
+def generate_phase_scoring_figure(context: dict, path: Path) -> None:
+    phase_summary = context["phase_summary"]
+    labels = [f"{row['innings_label']}\n{row['phase']}" for row in context["phase_summary_rows"]]
+    avg_runs = [row["avg_runs"] for row in context["phase_summary_rows"]]
+    avg_rr = [row["avg_current_rr"] for row in context["phase_summary_rows"]]
+
+    fig, axes = plt.subplots(1, 2, figsize=(12.5, 4.6))
+    axes[0].bar(labels, avg_runs, color="#0f766e")
+    axes[0].set_title("Average Runs at Snapshot")
+    axes[0].tick_params(axis="x", rotation=35)
+    axes[0].grid(axis="y", alpha=0.2)
+
+    axes[1].bar(labels, avg_rr, color="#ea580c")
+    axes[1].set_title("Average Current Run Rate")
+    axes[1].tick_params(axis="x", rotation=35)
+    axes[1].grid(axis="y", alpha=0.2)
+
+    fig.suptitle("Phase-wise Match Behaviour", fontsize=15, fontweight="bold")
+    fig.tight_layout(rect=[0, 0, 1, 0.94])
+    fig.savefig(path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_score_error_distribution_figure(context: dict, path: Path) -> None:
+    score_predictions = context["score_predictions"]
+
+    fig, axes = plt.subplots(1, 2, figsize=(12.2, 4.5))
+    axes[0].hist(score_predictions["absolute_error"], bins=24, color="#2563eb", edgecolor="white")
+    axes[0].set_title("Absolute Error Distribution")
+    axes[0].set_xlabel("Absolute error (runs)")
+    axes[0].set_ylabel("Held-out rows")
+
+    bucket_labels = [row["bucket"] for row in context["score_wicket_summary"]]
+    bucket_mae = [row["mae_value"] for row in context["score_wicket_summary"]]
+    axes[1].bar(bucket_labels, bucket_mae, color="#1d4ed8")
+    axes[1].set_title("MAE by Wicket-State Bucket")
+    axes[1].set_xlabel("Wickets lost")
+    axes[1].set_ylabel("MAE (runs)")
+    axes[1].grid(axis="y", alpha=0.2)
+
+    fig.tight_layout()
+    fig.savefig(path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_win_calibration_figure(context: dict, path: Path) -> None:
+    calibration_rows = context["win_calibration_bins"]
+    pred = [row["mean_pred_value"] for row in calibration_rows]
+    actual = [row["empirical_win_value"] for row in calibration_rows]
+    labels = [row["bucket"] for row in calibration_rows]
+
+    fig, axes = plt.subplots(1, 2, figsize=(12.2, 4.7))
+    axes[0].plot([0, 1], [0, 1], linestyle="--", color="#94a3b8", linewidth=1.2)
+    axes[0].plot(pred, actual, marker="o", linewidth=2.0, color="#b91c1c")
+    axes[0].set_xlim(0, 1)
+    axes[0].set_ylim(0, 1)
+    axes[0].set_xlabel("Average predicted win probability")
+    axes[0].set_ylabel("Empirical win rate")
+    axes[0].set_title("Reliability Curve")
+    axes[0].grid(alpha=0.2)
+
+    axes[1].bar(labels, [row["rows"] for row in calibration_rows], color="#7c3aed")
+    axes[1].set_title("Rows per Calibration Bin")
+    axes[1].set_xlabel("Probability bucket")
+    axes[1].set_ylabel("Held-out rows")
+    axes[1].tick_params(axis="x", rotation=35)
+
+    fig.tight_layout()
+    fig.savefig(path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_monitoring_snapshot(context: dict, path: Path) -> None:
+    drift = context["production_drift_report"]
+    pipeline = context["canonical_pipeline_report"]
+    reference = context["feature_reference_profile"]
+
+    fig, ax = plt.subplots(figsize=(13, 7))
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis("off")
+    ax.add_patch(Rectangle((0, 0), 1, 1, facecolor="#f8fafc", edgecolor="none"))
+
+    add_card(
+        ax,
+        0.05,
+        0.52,
+        0.40,
+        0.34,
+        "Monitoring Window",
+        [
+            f"Status: {drift['status']}",
+            f"Events used: {drift['events_used']}",
+            f"Outcomes used: {drift['outcomes_used']}",
+            f"Retrain trigger: {'Yes' if drift['trigger_retrain'] else 'No'}",
+            f"Recommended action: {drift['recommended_action']}",
+        ],
+        facecolor="#eff6ff",
+    )
+    add_card(
+        ax,
+        0.53,
+        0.52,
+        0.40,
+        0.34,
+        "Pipeline Consistency",
+        [
+            f"Version: {pipeline['version_id']}",
+            f"Consistency checks: {len(pipeline['consistency']['checks'])}",
+            f"Consistency OK: {'Yes' if pipeline['consistency']['ok'] else 'No'}",
+            f"Run steps: {', '.join(pipeline['steps'])}",
+        ],
+        facecolor="#ecfeff",
+    )
+    add_card(
+        ax,
+        0.05,
+        0.12,
+        0.88,
+        0.26,
+        "Reference Distribution Snapshot",
+        [
+            f"Runs mean / p90: {fmt_float(reference['features']['runs']['mean'])} / {fmt_float(reference['features']['runs']['p90'])}",
+            f"Wickets mean / p90: {fmt_float(reference['features']['wickets']['mean'])} / {fmt_float(reference['features']['wickets']['p90'])}",
+            f"Current RR mean / p90: {fmt_float(reference['features']['current_run_rate']['mean'])} / {fmt_float(reference['features']['current_run_rate']['p90'])}",
+            f"Death-over slice rate: {fmt_pct(reference['slice_rates']['death_over'])}",
+            f"High-pressure chase rate: {fmt_pct(reference['slice_rates']['high_pressure_chase'])}",
+        ],
+        facecolor="#fef3c7",
+    )
+
+    ax.text(0.05, 0.90, "Monitoring and Drift Readiness Snapshot", fontsize=16, fontweight="bold", color="#0f172a")
+    ax.text(
+        0.05,
+        0.06,
+        "This visual shows that the project has moved beyond offline modeling into artifact governance and post-deployment monitoring readiness.",
+        fontsize=10,
+        color="#334155",
+    )
+    fig.savefig(path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
 def build_score_benchmark_rows(scope_name: str, scope_report: dict) -> list[dict[str, str]]:
     best_name = get_selected_score_model_name(scope_report)
     rows = []
@@ -1008,26 +1343,40 @@ def run_live_scenarios() -> list[dict[str, str]]:
         return []
 
     rows: list[dict[str, str]] = []
-    for scenario in LIVE_SCENARIOS:
-        prediction, errors = predict_match_state(
-            scenario["payload"],
-            support_tables=support_tables,
-            score_model=score_model,
-            win_model=win_model,
-        )
-        if errors or prediction is None:
-            continue
-        rows.append(
-            {
-                "scenario": scenario["label"],
-                "phase": prediction["phase"],
-                "projected_total": prediction["predicted_total"],
-                "win_prob": prediction["win_prob_pct"],
-                "range": prediction["projected_range"],
-                "collapse_risk": prediction["collapse_risk_pct"],
-                "interpretation": scenario["interpretation"],
-            }
-        )
+    monitoring_module = None
+    original_track_prediction_event = None
+    try:
+        import ipl_predictor.monitoring as monitoring_module
+
+        original_track_prediction_event = monitoring_module.track_prediction_event
+        monitoring_module.track_prediction_event = lambda **kwargs: ""
+    except Exception:
+        monitoring_module = None
+
+    try:
+        for scenario in LIVE_SCENARIOS:
+            prediction, errors = predict_match_state(
+                scenario["payload"],
+                support_tables=support_tables,
+                score_model=score_model,
+                win_model=win_model,
+            )
+            if errors or prediction is None:
+                continue
+            rows.append(
+                {
+                    "scenario": scenario["label"],
+                    "phase": prediction["phase"],
+                    "projected_total": prediction["predicted_total"],
+                    "win_prob": prediction["win_prob_pct"],
+                    "range": prediction["projected_range"],
+                    "collapse_risk": prediction["collapse_risk_pct"],
+                    "interpretation": scenario["interpretation"],
+                }
+            )
+    finally:
+        if monitoring_module is not None and original_track_prediction_event is not None:
+            monitoring_module.track_prediction_event = original_track_prediction_event
     return rows
 
 
@@ -1066,10 +1415,15 @@ def run_pre_match_scenarios() -> list[dict[str, str]]:
 
 
 def build_context() -> dict:
-    deployment_report = load_json(MODELS_DIR / "deployment_report.json")
+    raw_deployment_report = load_json(MODELS_DIR / "deployment_report.json")
     best_search_report = load_json(MODELS_DIR / "best_model_search_report.json")
     score_uncertainty = load_json(MODELS_DIR / "score_uncertainty.json")
     cpu_report = load_json(MODELS_DIR / "cpu_model_report.json")
+    pre_match_model_report = load_json(MODELS_DIR / "pre_match_model_report.json")
+    production_drift_report = load_json(MODELS_DIR / "production_drift_report.json")
+    feature_reference_profile = load_json(MODELS_DIR / "feature_reference_profile.json")
+    canonical_pipeline_report = load_json(MODELS_DIR / "canonical_pipeline_report.json")
+    model_registry = load_json(MODELS_DIR / "model_registry.json")
     requirements = (ROOT_DIR / "requirements.txt").read_text(encoding="utf-8").strip().splitlines()
 
     ipl_features = pd.read_csv(PROCESSED_DIR / "ipl_features.csv", low_memory=False)
@@ -1084,6 +1438,11 @@ def build_context() -> dict:
     active_teams = pd.read_csv(PROCESSED_DIR / "active_teams_2026.csv")
     score_predictions = pd.read_csv(MODELS_DIR / "best_score_test_predictions.csv")
     win_predictions = pd.read_csv(MODELS_DIR / "best_win_test_predictions.csv")
+    deployment_report = build_effective_deployment_report(
+        raw_deployment_report,
+        best_search_report,
+        model_registry,
+    )
 
     support_frames = {
         "ipl_features.csv": ipl_features,
@@ -1244,6 +1603,180 @@ def build_context() -> dict:
         {"field": "Returned analytics", "required": "Output", "description": "Predicted total, win probability, projected range, runs-vs-par, simulation bands, and weather context."},
     ]
 
+    notebook_inventory = []
+    for path in sorted((ROOT_DIR / "notebooks").glob("*.ipynb")):
+        notebook_json = load_json(path)
+        cells = notebook_json.get("cells", [])
+        notebook_inventory.append(
+            {
+                "name": path.name,
+                "size": human_size(path.stat().st_size),
+                "code_cells": sum(1 for cell in cells if cell.get("cell_type") == "code"),
+                "markdown_cells": sum(1 for cell in cells if cell.get("cell_type") == "markdown"),
+                "role": {
+                    "clean_analysis_multimodel.ipynb": "Compact analysis trace for cleaned training data and multi-model review.",
+                    "data_collection_and_preprocessing.ipynb": "Documents raw-data ingestion, cleaning checks, and feature-building ideas.",
+                    "ipl_data_eda.ipynb": "Large exploratory notebook covering IPL trends, distributions, and venue or team behaviour.",
+                }.get(path.name, "Project notebook used for exploratory analysis."),
+            }
+        )
+
+    dependency_inventory = []
+    for requirement in requirements:
+        package_name = requirement.split(">=")[0].split("==")[0].split("<")[0].strip()
+        dependency_inventory.append(
+            {
+                "package": package_name,
+                "specifier": requirement,
+                "role": DEPENDENCY_ROLE_NOTES.get(package_name, "Supporting library used by the project."),
+            }
+        )
+
+    feature_family_rows = [
+        {
+            "group": "Categorical identifiers",
+            "count": len(CATEGORICAL_FEATURES),
+            "examples": ", ".join(CATEGORICAL_FEATURES[:4]) + ", ...",
+        },
+        {
+            "group": "Match-state geometry",
+            "count": 8,
+            "examples": "runs, wickets, wickets_left, balls_left, innings_progress",
+        },
+        {
+            "group": "Momentum windows",
+            "count": 6,
+            "examples": "runs_last_5, wickets_last_5, runs_last_6_balls, runs_last_12_balls",
+        },
+        {
+            "group": "Chase and phase context",
+            "count": 9,
+            "examples": "current_run_rate, target, required_run_rate, is_powerplay, is_death",
+        },
+        {
+            "group": "Team and player context",
+            "count": 11,
+            "examples": "team_form, venue_form, striker_form_sr, bowler_form_econ",
+        },
+        {
+            "group": "Weather and venue priors",
+            "count": 9,
+            "examples": "temperature_c, dew_risk, runs_vs_par, venue_avg_first_innings",
+        },
+    ]
+
+    phase_summary = (
+        ipl_features.groupby(["innings", "phase"])
+        .agg(
+            rows=("match_id", "size"),
+            avg_runs=("runs", "mean"),
+            avg_wickets=("wickets", "mean"),
+            avg_current_rr=("current_run_rate", "mean"),
+            avg_total=("total_runs", "mean"),
+            batting_win_rate=("win", "mean"),
+        )
+        .reset_index()
+        .sort_values(["innings", "phase"])
+    )
+    phase_summary["innings_label"] = phase_summary["innings"].map({1: "First innings", 2: "Second innings"})
+    phase_order = {"powerplay": 0, "middle": 1, "death": 2}
+    phase_summary["phase_order"] = phase_summary["phase"].map(phase_order)
+    phase_summary = phase_summary.sort_values(["innings", "phase_order"])
+    phase_summary_rows = [
+        {
+            "innings_label": row.innings_label,
+            "phase": row.phase.title(),
+            "rows": int(row.rows),
+            "avg_runs": float(row.avg_runs),
+            "avg_wickets": float(row.avg_wickets),
+            "avg_current_rr": float(row.avg_current_rr),
+            "avg_total": float(row.avg_total),
+            "batting_win_rate": float(row.batting_win_rate),
+        }
+        for row in phase_summary.itertuples(index=False)
+    ]
+
+    wicket_bucket_order = ["0-2", "3-5", "6-8", "9-10"]
+    score_predictions = score_predictions.copy()
+    score_predictions["wicket_bucket"] = pd.cut(
+        score_predictions["wickets"],
+        bins=[-0.1, 2, 5, 8, 10],
+        labels=wicket_bucket_order,
+    )
+    score_wicket_summary = []
+    for bucket in wicket_bucket_order:
+        subset = score_predictions[score_predictions["wicket_bucket"] == bucket]
+        if subset.empty:
+            continue
+        rmse_value = ((subset["predicted_total_runs"] - subset["total_runs"]) ** 2).mean() ** 0.5
+        score_wicket_summary.append(
+            {
+                "bucket": bucket,
+                "rows": int(len(subset)),
+                "mae": fmt_float(subset["absolute_error"].mean()),
+                "mae_value": float(subset["absolute_error"].mean()),
+                "rmse": fmt_float(rmse_value),
+                "mean_actual": fmt_float(subset["total_runs"].mean()),
+                "mean_prediction": fmt_float(subset["predicted_total_runs"].mean()),
+            }
+        )
+
+    win_predictions = win_predictions.copy()
+    win_predictions["probability_bucket"] = pd.cut(
+        win_predictions["predicted_win_prob"],
+        bins=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        labels=["0-20%", "20-40%", "40-60%", "60-80%", "80-100%"],
+        include_lowest=True,
+    )
+    win_calibration_bins = []
+    for bucket in ["0-20%", "20-40%", "40-60%", "60-80%", "80-100%"]:
+        subset = win_predictions[win_predictions["probability_bucket"] == bucket]
+        if subset.empty:
+            continue
+        mean_pred = float(subset["predicted_win_prob"].mean())
+        empirical = float(subset["win"].mean())
+        win_calibration_bins.append(
+            {
+                "bucket": bucket,
+                "rows": int(len(subset)),
+                "mean_pred": fmt_pct(mean_pred),
+                "mean_pred_value": mean_pred,
+                "empirical_win": fmt_pct(empirical),
+                "empirical_win_value": empirical,
+                "gap": f"{(empirical - mean_pred) * 100:+.1f} pp",
+            }
+        )
+
+    version_inventory = []
+    latest_entries = model_registry.get("entries", [])[-3:]
+    for entry in latest_entries:
+        live_metrics = entry.get("metrics", {}).get("live", {})
+        version_inventory.append(
+            {
+                "version_id": entry.get("version_id", ""),
+                "created_at": entry.get("created_at_utc", "")[:10],
+                "scope": live_metrics.get("scope", ""),
+                "score_model": prettify_model_name(live_metrics.get("score_model", "")),
+                "score_rmse": fmt_float(live_metrics.get("score_test", {}).get("rmse", 0.0)) if live_metrics.get("score_test") else "-",
+                "win_model": prettify_model_name(live_metrics.get("win_model", "")),
+                "win_log_loss": fmt_float(live_metrics.get("win_test", {}).get("log_loss", 0.0), 4) if live_metrics.get("win_test") else "-",
+            }
+        )
+
+    drift_summary_rows = [
+        {"dimension": "Monitoring window", "value": str(production_drift_report["window"]), "interpretation": "Configured rolling window size used by the drift module."},
+        {"dimension": "Events used", "value": str(production_drift_report["events_used"]), "interpretation": "Prediction events currently available for monitoring."},
+        {"dimension": "Outcomes used", "value": str(production_drift_report["outcomes_used"]), "interpretation": "Resolved outcomes available for outcome-drift evaluation."},
+        {"dimension": "Current status", "value": production_drift_report["status"], "interpretation": "Overall drift-monitoring state reported by the pipeline."},
+        {"dimension": "Retrain trigger", "value": "Yes" if production_drift_report["trigger_retrain"] else "No", "interpretation": "Whether the current monitoring snapshot recommends retraining."},
+        {"dimension": "Recommended action", "value": production_drift_report["recommended_action"], "interpretation": "Practical next step recorded by the monitoring module."},
+    ]
+
+    workspace_map_rows = [
+        {"name": name, "role": role}
+        for name, role in WORKSPACE_MAP
+    ]
+
     artifact_inventory = []
     for path in sorted(MODELS_DIR.iterdir()):
         if not path.is_file() or path.suffix.lower() not in {".pkl", ".json", ".csv"}:
@@ -1303,6 +1836,11 @@ def build_context() -> dict:
         "best_search_report": best_search_report,
         "score_uncertainty": score_uncertainty,
         "cpu_report": cpu_report,
+        "pre_match_model_report": pre_match_model_report,
+        "production_drift_report": production_drift_report,
+        "feature_reference_profile": feature_reference_profile,
+        "canonical_pipeline_report": canonical_pipeline_report,
+        "model_registry": model_registry,
         "requirements": requirements,
         "venue_stats": venue_stats,
         "season_summary": season_summary,
@@ -1313,11 +1851,24 @@ def build_context() -> dict:
         "support_table_catalog": support_table_catalog,
         "workflow_inventory": workflow_inventory,
         "api_contract_rows": api_contract_rows,
+        "notebook_inventory": notebook_inventory,
+        "dependency_inventory": dependency_inventory,
+        "feature_family_rows": feature_family_rows,
+        "phase_summary": phase_summary,
+        "phase_summary_rows": phase_summary_rows,
         "artifact_inventory": artifact_inventory,
         "source_inventory": source_inventory,
         "test_inventory": test_inventory,
         "score_case_studies": score_case_studies,
         "win_case_studies": win_case_studies,
+        "score_wicket_summary": score_wicket_summary,
+        "win_calibration_bins": win_calibration_bins,
+        "version_inventory": version_inventory,
+        "drift_summary_rows": drift_summary_rows,
+        "workspace_map_rows": workspace_map_rows,
+        "preprocessing_rules": PREPROCESSING_RULES,
+        "score_predictions": score_predictions,
+        "win_predictions": win_predictions,
         "score_benchmarks_recent": build_score_benchmark_rows(
             "recent_active_history",
             best_search_report["scopes"]["recent_active_history"],
@@ -1364,37 +1915,52 @@ def generate_assets(context: dict) -> dict[str, Path]:
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
     pipeline_path = ASSETS_DIR / FIGURES[0].filename
     models_path = ASSETS_DIR / FIGURES[1].filename
-    venues_path = ASSETS_DIR / FIGURES[2].filename
-    uncertainty_path = ASSETS_DIR / FIGURES[3].filename
-    dataset_dashboard_path = ASSETS_DIR / FIGURES[4].filename
-    flask_mockup_path = ASSETS_DIR / FIGURES[5].filename
-    streamlit_mockup_path = ASSETS_DIR / FIGURES[6].filename
-    api_snapshot_path = ASSETS_DIR / FIGURES[7].filename
-    cli_snapshot_path = ASSETS_DIR / FIGURES[8].filename
-    validation_snapshot_path = ASSETS_DIR / FIGURES[9].filename
+    feature_mix_path = ASSETS_DIR / FIGURES[2].filename
+    venues_path = ASSETS_DIR / FIGURES[3].filename
+    uncertainty_path = ASSETS_DIR / FIGURES[4].filename
+    phase_scoring_path = ASSETS_DIR / FIGURES[5].filename
+    score_error_path = ASSETS_DIR / FIGURES[6].filename
+    win_calibration_path = ASSETS_DIR / FIGURES[7].filename
+    dataset_dashboard_path = ASSETS_DIR / FIGURES[8].filename
+    flask_mockup_path = ASSETS_DIR / FIGURES[9].filename
+    streamlit_mockup_path = ASSETS_DIR / FIGURES[10].filename
+    api_snapshot_path = ASSETS_DIR / FIGURES[11].filename
+    cli_snapshot_path = ASSETS_DIR / FIGURES[12].filename
+    validation_snapshot_path = ASSETS_DIR / FIGURES[13].filename
+    monitoring_snapshot_path = ASSETS_DIR / FIGURES[14].filename
 
     generate_pipeline_figure(pipeline_path)
     generate_model_comparison_figure(context["best_search_report"], models_path)
+    generate_feature_mix_figure(context, feature_mix_path)
     generate_venue_figure(context["venue_stats"], venues_path)
     generate_uncertainty_figure(context["score_uncertainty"], uncertainty_path)
+    generate_phase_scoring_figure(context, phase_scoring_path)
+    generate_score_error_distribution_figure(context, score_error_path)
+    generate_win_calibration_figure(context, win_calibration_path)
     generate_dataset_dashboard_figure(context, dataset_dashboard_path)
     generate_flask_ui_mockup(context, flask_mockup_path)
     generate_streamlit_mockup(context, streamlit_mockup_path)
     generate_api_snapshot(context, api_snapshot_path)
     generate_cli_snapshot(context, cli_snapshot_path)
     generate_validation_snapshot(context, validation_snapshot_path)
+    generate_monitoring_snapshot(context, monitoring_snapshot_path)
 
     return {
         "pipeline": pipeline_path,
         "models": models_path,
+        "feature_mix": feature_mix_path,
         "venues": venues_path,
         "uncertainty": uncertainty_path,
+        "phase_scoring": phase_scoring_path,
+        "score_error_distribution": score_error_path,
+        "win_calibration": win_calibration_path,
         "dataset_dashboard": dataset_dashboard_path,
         "flask_mockup": flask_mockup_path,
         "streamlit_mockup": streamlit_mockup_path,
         "api_snapshot": api_snapshot_path,
         "cli_snapshot": cli_snapshot_path,
         "validation_snapshot": validation_snapshot_path,
+        "monitoring_snapshot": monitoring_snapshot_path,
     }
 
 
@@ -1512,9 +2078,9 @@ def add_front_matter(doc: Document, context: dict) -> None:
     )
     add_paragraph(
         doc,
-        f"The promoted live score model in the current workspace is a torch-based entity-embedding regressor selected "
-        f"from a multi-model benchmark, while the promoted live win model is a calibrated CatBoost classifier. On the "
-        f"held-out deployment report, the score model achieves a mean absolute error of {fmt_float(score_metrics['mae'])} "
+        f"The promoted live score model in the current workspace is `{prettify_model_name(deployment['deployment_score_model'])}`, "
+        f"while the promoted live win model is `{prettify_model_name(deployment['deployment_win_model'])}`. On the "
+        f"held-out deployment snapshot represented in the current workspace, the score model achieves a mean absolute error of {fmt_float(score_metrics['mae'])} "
         f"runs and a root mean squared error of {fmt_float(score_metrics['rmse'])} runs. The win model achieves "
         f"{fmt_float(win_metrics['accuracy'] * 100)}% accuracy with log loss {fmt_float(win_metrics['log_loss'], 4)} "
         f"and Brier score {fmt_float(win_metrics['brier'], 4)}.",
@@ -1529,6 +2095,38 @@ def add_front_matter(doc: Document, context: dict) -> None:
     doc.add_page_break()
 
 
+def add_executive_summary(doc: Document, context: dict) -> None:
+    deployment = context["deployment_report"]
+    add_centered_paragraph(doc, "EXECUTIVE SUMMARY", size=15, bold=True)
+    add_paragraph(
+        doc,
+        "This report documents the design and implementation of an IPL analytics system that predicts two practically important outcomes from the "
+        "current state of a match: the projected innings total and the batting side's live probability of winning. The project is built from raw "
+        "Cricsheet CSV2 data and extends beyond model training into deployment, testing, monitoring readiness, and automated report generation.",
+    )
+    add_paragraph(
+        doc,
+        f"The current workspace combines {context['counts']['raw_matches']} raw IPL matches, {context['counts']['processed_rows']:,} engineered rows, "
+        f"multiple historical support tables, versioned model artifacts, and several user interfaces. The live deployment snapshot represented in the "
+        f"workspace promotes `{prettify_model_name(deployment['deployment_score_model'])}` for score prediction and "
+        f"`{prettify_model_name(deployment['deployment_win_model'])}` for win probability estimation.",
+    )
+    add_paragraph(
+        doc,
+        "A central theme of the project is that predictive performance depends on disciplined feature engineering as much as on algorithm choice. "
+        "For this reason, the pipeline explicitly handles alias normalization, chronological leakage control, support-table reuse, and time-aware "
+        "evaluation splits. The report also emphasizes why different model families were considered and how the final deployment balances accuracy, "
+        "probability quality, and practical usability.",
+    )
+    add_paragraph(
+        doc,
+        "The overall contribution is therefore broader than a single predictive model. The work delivers a reproducible sports-analytics workflow, "
+        "multiple deployment surfaces, stored experiment traces, and a report that can be regenerated as the project evolves. These characteristics "
+        "make the submission suitable not only as a machine-learning exercise but also as a compact demonstration of full-stack analytical engineering.",
+    )
+    doc.add_page_break()
+
+
 def add_contents_and_lists(doc: Document) -> None:
     doc.add_heading("TABLE OF CONTENTS", level=1)
     toc_items = [
@@ -1537,6 +2135,7 @@ def add_contents_and_lists(doc: Document) -> None:
         "Certificate",
         "Acknowledgements",
         "Abstract",
+        "Executive Summary",
         "Table of Contents",
         "List of Figures",
         "List of Tables",
@@ -1737,7 +2336,7 @@ def add_chapter_2(doc: Document) -> None:
             [
                 "Guo and Berkhahn (2016), Entity Embeddings of Categorical Variables",
                 "Embedding layers can learn compact dense representations for high-cardinality categories.",
-                "Motivated the torch entity-embedding regressor used for live score prediction.",
+                "Motivated inclusion of torch entity-embedding models in the live score benchmark.",
                 "Needs enough data and careful validation to avoid unstable training.",
             ],
             [
@@ -1898,6 +2497,13 @@ def add_chapter_4(doc: Document, context: dict, assets: dict[str, Path]) -> None
             ["Weather / venue", "dew_risk, temperature, venue averages", "Models environmental and surface influence."],
         ],
     )
+    add_figure(doc, assets["feature_mix"], FIGURES[2].number, FIGURES[2].title)
+    add_paragraph(
+        doc,
+        "The feature-family breakdown is useful for two reasons. First, it makes clear that the live predictor is not a shallow scorecard model; "
+        "a substantial fraction of the input space is dedicated to context, momentum, and environmental priors. Second, it shows why the project "
+        "benefits from using both categorical-aware models and deep tabular alternatives during model search.",
+    )
 
     doc.add_heading("DATASET AUDIT OF THE CURRENT WORKSPACE", level=2)
     add_paragraph(
@@ -1979,6 +2585,27 @@ def add_chapter_4(doc: Document, context: dict, assets: dict[str, Path]) -> None
         "signals so the model does not overreact to short-term streaks or ignore genuine recent changes.",
     )
 
+    doc.add_heading("PREPROCESSING RULES AND LEAKAGE CONTROL", level=2)
+    add_paragraph(
+        doc,
+        "A large part of the project’s reliability comes from seemingly small preprocessing decisions. In sports analytics, a model can appear "
+        "strong simply because it has been allowed to see information that would not exist at the prediction time. The report therefore documents "
+        "the exact normalization and leakage-control rules followed during feature creation.",
+    )
+    add_table_title(doc, CHAPTER_4_TABLES["preprocessing_rules"])
+    add_table(
+        doc,
+        ["Operation", "What It Does", "Why It Matters"],
+        [[operation, action, reason] for operation, action, reason in context["preprocessing_rules"]],
+        font_size=9,
+    )
+    add_paragraph(
+        doc,
+        "These rules show that the project has been treated as an engineering system rather than a one-off notebook experiment. The combination of "
+        "alias normalization, chronological processing, and artifact checks is especially important because the same dataset and models are reused "
+        "later by the report generator, Flask app, Streamlit dashboard, CLI, and monitoring modules.",
+    )
+
     doc.add_heading("MACHINE LEARNING AND DEEP LEARNING MODELS FOR IPL PREDICTION", level=2)
     add_paragraph(
         doc,
@@ -1986,19 +2613,13 @@ def add_chapter_4(doc: Document, context: dict, assets: dict[str, Path]) -> None
         "for fast CPU refreshes. GPU workflows compare XGBoost, CatBoost, and weighted ensembles. A broader search additionally includes torch-based "
         "entity-embedding models for categorical-heavy tabular data.",
     )
+    add_paragraph(doc, describe_score_model(context["deployment_report"]["deployment_score_model"]))
+    add_paragraph(doc, describe_win_model(context["deployment_report"]["deployment_win_model"]))
     add_paragraph(
         doc,
-        "The currently deployed score model is the `torch_entity_gpu` regressor. It maps categorical variables to learned embeddings, concatenates "
-        "them with normalized numeric features, and sends the combined representation through a multilayer perceptron with hidden layers "
-        "(256, 128, 64), ReLU activations, batch normalization, dropout, and AdamW optimization. This design helps the model learn dense "
-        "representations for teams, venues, batters, and bowlers without exploding the feature space through one-hot encoding alone.",
-    )
-    add_paragraph(
-        doc,
-        "The currently deployed win model is `catboost_gpu_calibrated`. CatBoost handles categorical structure effectively on tabular data, and "
-        "the project applies isotonic calibration so that predicted win probabilities behave more reliably as probabilities rather than merely "
-        "ranking scores. Separate pre-match models are trained using one-hot encoded batting team, bowling team, and venue with small MLP "
-        "networks for score and win prediction before live innings context becomes available.",
+        "Separate pre-match models are also trained for the team-versus-team setting in which the live innings context is not yet available. "
+        "These models intentionally use fewer features and therefore act as a conservative analytical layer rather than competing directly with "
+        "the richer live prediction stack.",
     )
     add_table_title(doc, TABLES[4])
     add_table(
@@ -2007,9 +2628,9 @@ def add_chapter_4(doc: Document, context: dict, assets: dict[str, Path]) -> None
         [
             ["HistGradientBoosting", "Score and win", "Fast CPU baseline and comparison point."],
             ["XGBoost", "Score and win", "GPU/CPU gradient boosting benchmark for structured data."],
-            ["CatBoost", "Score and win", "Categorical-friendly boosting; selected for deployed win model."],
+            ["CatBoost", "Score and win", "Categorical-friendly boosting used in the live win-model search."],
             ["Weighted ensembles", "Score and win", "Combines top classical models for benchmark robustness."],
-            ["Torch entity embeddings", "Score and win", "Deep tabular modeling with learned categorical representations; selected for deployed live score model."],
+            ["Torch entity embeddings", "Score and win", "Deep tabular modeling with learned categorical representations for richer categorical context."],
             ["MLP pre-match models", "Pre-match score and win", "Lightweight neural models using team-vs-team and venue inputs."],
         ],
     )
@@ -2066,6 +2687,30 @@ def add_chapter_4(doc: Document, context: dict, assets: dict[str, Path]) -> None
         ],
         font_size=9,
     )
+
+    doc.add_heading("NOTEBOOKS, ANALYSIS TRACES, AND REPRODUCIBILITY", level=2)
+    add_paragraph(
+        doc,
+        "Although the final project is organized around reusable scripts, the repository also preserves exploratory notebooks that document how the "
+        "team moved from raw analysis to a structured pipeline. Including these notebooks in the report is important because they show the evolution "
+        "of data understanding, not just the polished final code.",
+    )
+    add_table_title(doc, CHAPTER_4_TABLES["notebook_inventory"])
+    add_table(
+        doc,
+        ["Notebook", "Approx. Size", "Code Cells", "Markdown Cells", "Role"],
+        [
+            [row["name"], row["size"], str(row["code_cells"]), str(row["markdown_cells"]), row["role"]]
+            for row in context["notebook_inventory"]
+        ],
+        font_size=9,
+    )
+    add_paragraph(
+        doc,
+        "This notebook inventory reinforces a useful academic point: the final system did not emerge fully formed. It passed through exploratory "
+        "EDA, preprocessing validation, and model-comparison phases before being compressed into reproducible scripts and saved artifacts.",
+    )
+
     doc.add_heading("CODEBASE ORGANIZATION", level=2)
     add_paragraph(
         doc,
@@ -2082,6 +2727,27 @@ def add_chapter_4(doc: Document, context: dict, assets: dict[str, Path]) -> None
             for row in context["source_inventory"]
         ],
         font_size=9,
+    )
+    doc.add_heading("DEPENDENCY STACK AND IMPLEMENTATION SUPPORT", level=2)
+    add_paragraph(
+        doc,
+        "A full project report should also account for the software stack that makes the implementation possible. Listing dependencies is not enough; "
+        "it is more useful to explain how each package contributes to data processing, training, serving, testing, or report generation.",
+    )
+    add_table_title(doc, CHAPTER_4_TABLES["dependency_roles"])
+    add_table(
+        doc,
+        ["Package", "Version Specifier", "Role in the Project"],
+        [
+            [row["package"], row["specifier"], row["role"]]
+            for row in context["dependency_inventory"]
+        ],
+        font_size=9,
+    )
+    add_paragraph(
+        doc,
+        "Documenting the dependency stack also improves reproducibility. A future reader can understand not only which models were trained, but also "
+        "which libraries are needed to rebuild the dataset, regenerate figures, run the web layer, and recreate the final report document itself.",
     )
     doc.add_page_break()
 
@@ -2177,9 +2843,9 @@ def add_chapter_5(doc: Document, context: dict, assets: dict[str, Path]) -> None
     add_paragraph(
         doc,
         f"The selected live score model improves materially over the CPU baseline report, where the baseline RMSE was "
-        f"{fmt_float(cpu_report['score']['overall']['rmse'])} runs. The final torch entity-embedding score model reduces "
+        f"{fmt_float(cpu_report['score']['overall']['rmse'])} runs. The final promoted score model reduces "
         f"that to {fmt_float(deployment['deployment_score_metrics_test']['rmse'])} runs, indicating that higher-capacity "
-        "tabular representation learning helps on this task.",
+        "or better-combined tabular modeling helps on this task when compared with the earlier CPU-only baseline.",
     )
     add_paragraph(
         doc,
@@ -2277,7 +2943,7 @@ def add_chapter_5(doc: Document, context: dict, assets: dict[str, Path]) -> None
         ],
         font_size=9,
     )
-    add_figure(doc, assets["venues"], FIGURES[2].number, FIGURES[2].title)
+    add_figure(doc, assets["venues"], FIGURES[3].number, FIGURES[3].title)
 
     doc.add_heading("DETAILED MODEL SEARCH COMPARISON", level=2)
     add_paragraph(
@@ -2333,6 +2999,39 @@ def add_chapter_5(doc: Document, context: dict, assets: dict[str, Path]) -> None
         "family. The final system therefore promotes task-specific winners instead of forcing a single model family to dominate both objectives.",
     )
 
+    doc.add_heading("PHASE-WISE MATCH BEHAVIOUR IN THE ENGINEERED DATA", level=2)
+    add_paragraph(
+        doc,
+        "A useful way to interpret the learning problem is to inspect how innings behaviour changes across the powerplay, middle overs, and death overs. "
+        "These summaries are computed directly from the engineered dataset and therefore reflect the same distributions seen during model training.",
+    )
+    add_table_title(doc, CHAPTER_5_TABLES["phase_summary"])
+    add_table(
+        doc,
+        ["Innings", "Phase", "Rows", "Avg Runs", "Avg Wickets", "Avg CRR", "Avg Final Total", "Batting Win Rate"],
+        [
+            [
+                row["innings_label"],
+                row["phase"],
+                f"{row['rows']:,}",
+                fmt_float(row["avg_runs"]),
+                fmt_float(row["avg_wickets"]),
+                fmt_float(row["avg_current_rr"]),
+                fmt_float(row["avg_total"]),
+                fmt_pct(row["batting_win_rate"]),
+            ]
+            for row in context["phase_summary_rows"]
+        ],
+        font_size=9,
+    )
+    add_figure(doc, assets["phase_scoring"], FIGURES[5].number, FIGURES[5].title)
+    add_paragraph(
+        doc,
+        "The phase-wise view makes it easier to understand why different model families can succeed. Early innings states are open-ended and uncertain, "
+        "middle-over states encode structural context, and death overs contain compressed risk, acceleration, and collapse behaviour. A stronger model "
+        "is therefore one that can adapt across these very different local regimes rather than memorizing a single average innings trajectory.",
+    )
+
     doc.add_heading("PRE-MATCH AND ANALYTICAL RESULTS", level=2)
     add_paragraph(
         doc,
@@ -2347,7 +3046,49 @@ def add_chapter_5(doc: Document, context: dict, assets: dict[str, Path]) -> None
         f"+{fmt_float(score_uncertainty['residual_q90'])} runs at the 90th percentile, with a residual standard deviation of "
         f"{fmt_float(score_uncertainty['residual_std'])} runs. These values are used to convert a point estimate into a more honest projected range.",
     )
-    add_figure(doc, assets["uncertainty"], FIGURES[3].number, FIGURES[3].title)
+    add_figure(doc, assets["uncertainty"], FIGURES[4].number, FIGURES[4].title)
+    add_table_title(doc, CHAPTER_5_TABLES["pre_match_metrics"])
+    add_table(
+        doc,
+        ["Task", "Split", "MAE / Accuracy", "RMSE / Log Loss", "R2 / Brier"],
+        [
+            [
+                "Pre-match score",
+                "Validation",
+                fmt_float(context["pre_match_model_report"]["score_metrics"]["valid"]["mae"]),
+                fmt_float(context["pre_match_model_report"]["score_metrics"]["valid"]["rmse"]),
+                fmt_float(context["pre_match_model_report"]["score_metrics"]["valid"]["r2"], 3),
+            ],
+            [
+                "Pre-match score",
+                "Test",
+                fmt_float(context["pre_match_model_report"]["score_metrics"]["test"]["mae"]),
+                fmt_float(context["pre_match_model_report"]["score_metrics"]["test"]["rmse"]),
+                fmt_float(context["pre_match_model_report"]["score_metrics"]["test"]["r2"], 3),
+            ],
+            [
+                "Pre-match win",
+                "Validation",
+                fmt_pct(context["pre_match_model_report"]["win_metrics"]["valid"]["accuracy"]),
+                fmt_float(context["pre_match_model_report"]["win_metrics"]["valid"]["log_loss"], 4),
+                fmt_float(context["pre_match_model_report"]["win_metrics"]["valid"]["brier"], 4),
+            ],
+            [
+                "Pre-match win",
+                "Test",
+                fmt_pct(context["pre_match_model_report"]["win_metrics"]["test"]["accuracy"]),
+                fmt_float(context["pre_match_model_report"]["win_metrics"]["test"]["log_loss"], 4),
+                fmt_float(context["pre_match_model_report"]["win_metrics"]["test"]["brier"], 4),
+            ],
+        ],
+        font_size=9,
+    )
+    add_paragraph(
+        doc,
+        "The pre-match metrics are noticeably weaker than the live metrics because these models must operate without ball-by-ball context, current batters, "
+        "or chase pressure. This gap is analytically useful: it highlights the value added by the live inference layer rather than suggesting that the "
+        "pre-match models should replace it.",
+    )
 
     doc.add_heading("SCENARIO-BASED INFERENCE ANALYSIS", level=2)
     add_paragraph(
@@ -2451,6 +3192,112 @@ def add_chapter_5(doc: Document, context: dict, assets: dict[str, Path]) -> None
         "an exceptional finish or suffers a sudden collapse.",
     )
 
+    doc.add_heading("ERROR PROFILE OF THE DEPLOYED MODELS", level=2)
+    add_paragraph(
+        doc,
+        "Score quality also changes with wicket state. The summary below groups held-out score predictions by wickets lost so the report can distinguish "
+        "between open-ended batting positions and more fragile late-innings situations.",
+    )
+    add_table_title(doc, CHAPTER_5_TABLES["score_wicket_summary"])
+    add_table(
+        doc,
+        ["Wickets Lost", "Rows", "MAE", "RMSE", "Avg Actual Total", "Avg Predicted Total"],
+        [
+            [
+                row["bucket"],
+                f"{row['rows']:,}",
+                row["mae"],
+                row["rmse"],
+                row["mean_actual"],
+                row["mean_prediction"],
+            ]
+            for row in context["score_wicket_summary"]
+        ],
+        font_size=9,
+    )
+    add_figure(doc, assets["score_error_distribution"], FIGURES[6].number, FIGURES[6].title)
+    add_paragraph(
+        doc,
+        "This slice-level analysis is more actionable than reporting a single overall RMSE. If one bucket is clearly worse than the others, future work "
+        "can focus on that specific regime by adding conditional features, targeted weighting, or specialized scenario simulation.",
+    )
+
+    doc.add_heading("WIN-PROBABILITY CALIBRATION ANALYSIS", level=2)
+    add_paragraph(
+        doc,
+        "Probability outputs are only useful when they behave like probabilities. The calibration table and figure therefore compare average predicted "
+        "win chance with the empirical batting-side win rate inside fixed probability bands on the held-out set.",
+    )
+    add_table_title(doc, CHAPTER_5_TABLES["win_calibration_bins"])
+    add_table(
+        doc,
+        ["Probability Bucket", "Rows", "Avg Predicted", "Empirical Win Rate", "Calibration Gap"],
+        [
+            [row["bucket"], f"{row['rows']:,}", row["mean_pred"], row["empirical_win"], row["gap"]]
+            for row in context["win_calibration_bins"]
+        ],
+        font_size=9,
+    )
+    add_figure(doc, assets["win_calibration"], FIGURES[7].number, FIGURES[7].title)
+    add_paragraph(
+        doc,
+        "A well-behaved calibration profile matters for an IPL analytics application because users are likely to interpret a 70% win chance literally. "
+        "The closer the empirical outcomes remain to the predicted bins, the more trustworthy that interpretation becomes.",
+    )
+
+    doc.add_heading("VERSIONED EXPERIMENT HISTORY", level=2)
+    add_paragraph(
+        doc,
+        "The repository preserves recent experiment versions in the model registry. This gives the report a lightweight audit trail showing how the "
+        "current artifacts evolved across training runs rather than appearing as unexplained files in the `models` directory.",
+    )
+    add_table_title(doc, CHAPTER_5_TABLES["experiment_versions"])
+    add_table(
+        doc,
+        ["Version", "Date", "Scope", "Score Model", "Score RMSE", "Win Model", "Win Log Loss"],
+        [
+            [
+                row["version_id"],
+                row["created_at"],
+                row["scope"],
+                row["score_model"],
+                row["score_rmse"],
+                row["win_model"],
+                row["win_log_loss"],
+            ]
+            for row in context["version_inventory"]
+        ],
+        font_size=9,
+    )
+    add_paragraph(
+        doc,
+        "This version history strengthens the academic presentation of the work because it documents iteration. It shows that model promotion was tied "
+        "to measurable results and recorded artifacts rather than ad hoc replacement of files.",
+    )
+
+    doc.add_heading("MONITORING AND DRIFT READINESS", level=2)
+    add_paragraph(
+        doc,
+        "The project also includes a monitoring layer that tracks prediction events, outcomes, and drift status. The current snapshot does not yet have "
+        "enough resolved live outcomes for a strong drift conclusion, but the surrounding infrastructure demonstrates a forward-looking deployment mindset.",
+    )
+    add_table_title(doc, CHAPTER_5_TABLES["drift_summary"])
+    add_table(
+        doc,
+        ["Monitoring Dimension", "Current Value", "Interpretation"],
+        [
+            [row["dimension"], row["value"], row["interpretation"]]
+            for row in context["drift_summary_rows"]
+        ],
+        font_size=9,
+    )
+    add_paragraph(
+        doc,
+        f"The stored reference profile records an average of {fmt_float(context['feature_reference_profile']['features']['runs']['mean'])} runs at prediction "
+        f"time and a death-over slice share of {fmt_pct(context['feature_reference_profile']['slice_rates']['death_over'])}. These baselines will become "
+        "more operationally useful as the live event log grows over future matches.",
+    )
+
     doc.add_heading("INTEGRATED SYSTEM TESTING VIA FLASK, API, STREAMLIT AND CLI", level=2)
     add_paragraph(
         doc,
@@ -2494,42 +3341,49 @@ def add_chapter_6(doc: Document, context: dict, assets: dict[str, Path]) -> None
             "The first visual summarizes the engineered data landscape using season-wise scoring trends, active-team batting summaries, venue priors, "
             "and a compact workspace snapshot. It demonstrates that the project is backed by a substantial structured dataset rather than a small toy sample.",
             "dataset_dashboard",
-            FIGURES[4],
+            FIGURES[8],
         ),
         (
             "FLASK LIVE PREDICTION INTERFACE",
             "This visual represents the Flask-based live prediction interface built on top of the shared inference contract. The key point for the report "
             "is not only UI appearance but the presence of structured input fields and a prediction summary that combines score, win probability, and range outputs.",
             "flask_mockup",
-            FIGURES[5],
+            FIGURES[9],
         ),
         (
             "STREAMLIT ANALYTICS DASHBOARD",
             "The Streamlit dashboard gives the project a second interface layer intended for exploration and analysis. It provides a stronger demonstration of "
             "analytical usability than a single prediction form because it exposes model comparisons, support-table views, and interactive selectors.",
             "streamlit_mockup",
-            FIGURES[6],
+            FIGURES[10],
         ),
         (
             "JSON API SNAPSHOT",
             "A strong academic project report should show how the model can be consumed programmatically. The API snapshot below demonstrates that the project "
             "is ready for integration into external services, dashboards, or automation pipelines through a structured JSON contract.",
             "api_snapshot",
-            FIGURES[7],
+            FIGURES[11],
         ),
         (
             "CLI OUTPUT SNAPSHOT",
             "The terminal interface is especially useful for quick testing, lightweight deployment, and demonstration during evaluation. Including it here shows "
             "that the system is usable even without a browser-based surface.",
             "cli_snapshot",
-            FIGURES[8],
+            FIGURES[12],
         ),
         (
             "TEST AND ARTIFACT VERIFICATION SNAPSHOT",
             "The final visual in this chapter focuses on verification discipline. It highlights that the repository contains automated tests as well as concrete "
             "saved artifacts, which strengthens the argument that the system is reproducible and deployment-oriented.",
             "validation_snapshot",
-            FIGURES[9],
+            FIGURES[13],
+        ),
+        (
+            "MONITORING AND DRIFT SNAPSHOT",
+            "The final screenshot-style visual documents that the project includes monitoring-oriented artifacts such as drift status, reference distributions, "
+            "and pipeline-consistency checks. This helps position the work as a maintainable system rather than a one-time model export.",
+            "monitoring_snapshot",
+            FIGURES[14],
         ),
     ]
 
@@ -2551,6 +3405,32 @@ def add_chapter_7(doc: Document) -> None:
         "deployment, and testing in a single coherent workflow. The final system is more meaningful than a basic regression notebook because it "
         "supports multiple user interfaces and retains a shared inference core.",
     )
+    add_paragraph(
+        doc,
+        "From an academic perspective, the project is valuable because it covers the full lifecycle of a machine-learning application: raw-data handling, "
+        "feature design, model comparison, selection logic, artifact management, interface integration, validation, reporting, and early monitoring support. "
+        "Each of these layers contributes to the final quality of the system, and the report documents them as connected engineering decisions rather than isolated tasks.",
+    )
+
+    doc.add_heading("MAJOR CONTRIBUTIONS OF THE WORK", level=2)
+    add_bullets(
+        doc,
+        [
+            "Constructed a leakage-aware IPL match-state dataset from raw Cricsheet CSV2 files and support tables.",
+            "Benchmarked multiple structured-data model families instead of assuming one algorithm would fit both prediction tasks.",
+            "Exposed the final system through Flask, Streamlit, API, and CLI surfaces built on the same inference core.",
+            "Added uncertainty bands, pre-match inference, artifact versioning, and monitoring-readiness components to extend beyond a basic predictor.",
+            "Generated a report pipeline that can be rerun as the workspace evolves, keeping documentation tied to actual project artifacts.",
+        ],
+    )
+
+    doc.add_heading("LESSONS LEARNED", level=2)
+    add_paragraph(
+        doc,
+        "Several practical lessons emerged while building the project. First, data preparation quality often matters more than trying many sophisticated models "
+        "on weak features. Second, probability calibration should be treated as a first-class concern whenever users will consume percentage-based outputs. "
+        "Third, interface unification through a shared inference module significantly reduces maintenance cost and inconsistency across web, dashboard, and terminal layers.",
+    )
 
     doc.add_heading("LIMITATION", level=2)
     add_bullets(
@@ -2560,6 +3440,8 @@ def add_chapter_7(doc: Document) -> None:
             "Latest-season evaluation size is smaller than the full historical training pool, so result variance remains possible.",
             "Rare match events such as extreme collapses or extraordinary late acceleration remain difficult to model robustly.",
             "The system does not yet use probable XI, pitch reports, toss simulation, or betting-market information.",
+            "Player-availability uncertainty and last-minute lineup changes are not modeled directly in the present pipeline.",
+            "Monitoring is implemented at the infrastructure level, but the current live outcome log is still too small for strong drift conclusions.",
         ],
     )
 
@@ -2572,6 +3454,8 @@ def add_chapter_7(doc: Document) -> None:
             "Introduce model monitoring and online feedback loops for season-over-season retraining.",
             "Expand the API to return feature contribution or explanation summaries for advanced users.",
             "Adapt the pipeline for other cricket leagues or international T20 competitions.",
+            "Build batter- and bowler-specific sequence models that exploit recent ball-by-ball context more explicitly.",
+            "Add automated PDF export and supervisor-ready formatting options to the report pipeline.",
         ],
     )
     doc.add_page_break()
@@ -2690,6 +3574,73 @@ def add_appendix(doc: Document, context: dict) -> None:
         ],
         font_size=9,
     )
+
+    doc.add_heading("APPENDIX G: NOTEBOOK INVENTORY", level=2)
+    add_paragraph(
+        doc,
+        "The notebook inventory is included separately from the script inventory because it captures the exploratory analysis trail that preceded the "
+        "final reproducible pipeline. This is helpful during academic evaluation because it shows how the team investigated the data before freezing "
+        "the implementation into scripts.",
+    )
+    add_table_title(doc, APPENDIX_TABLES["notebook_inventory"])
+    add_table(
+        doc,
+        ["Notebook", "Approx. Size", "Code Cells", "Markdown Cells", "Role"],
+        [
+            [row["name"], row["size"], str(row["code_cells"]), str(row["markdown_cells"]), row["role"]]
+            for row in context["notebook_inventory"]
+        ],
+        font_size=9,
+    )
+
+    doc.add_heading("APPENDIX H: DEPENDENCY INVENTORY", level=2)
+    add_table_title(doc, APPENDIX_TABLES["dependency_inventory"])
+    add_table(
+        doc,
+        ["Package", "Specifier", "Role"],
+        [
+            [row["package"], row["specifier"], row["role"]]
+            for row in context["dependency_inventory"]
+        ],
+        font_size=9,
+    )
+
+    doc.add_heading("APPENDIX I: VERSIONED MODEL REGISTRY SNAPSHOT", level=2)
+    add_paragraph(
+        doc,
+        "The model-registry snapshot below records the most recent tracked training versions. Including it in the appendix helps connect the document "
+        "to the saved artifacts present in the workspace at the time of report generation.",
+    )
+    add_table_title(doc, APPENDIX_TABLES["version_inventory"])
+    add_table(
+        doc,
+        ["Version", "Date", "Scope", "Score Model", "Score RMSE", "Win Model", "Win Log Loss"],
+        [
+            [
+                row["version_id"],
+                row["created_at"],
+                row["scope"],
+                row["score_model"],
+                row["score_rmse"],
+                row["win_model"],
+                row["win_log_loss"],
+            ]
+            for row in context["version_inventory"]
+        ],
+        font_size=9,
+    )
+
+    doc.add_heading("APPENDIX J: WORKSPACE DIRECTORY MAP", level=2)
+    add_table_title(doc, APPENDIX_TABLES["workspace_map"])
+    add_table(
+        doc,
+        ["Directory", "Primary Role"],
+        [
+            [row["name"], row["role"]]
+            for row in context["workspace_map_rows"]
+        ],
+        font_size=9,
+    )
     doc.add_page_break()
 
 
@@ -2738,6 +3689,7 @@ def add_abbreviations(doc: Document) -> None:
 
 def main() -> None:
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     context = build_context()
     assets = generate_assets(context)
 
@@ -2746,6 +3698,7 @@ def main() -> None:
 
     add_title_page(doc, context["today"])
     add_front_matter(doc, context)
+    add_executive_summary(doc, context)
     add_contents_and_lists(doc)
     add_chapter_1(doc, context)
     add_chapter_2(doc)

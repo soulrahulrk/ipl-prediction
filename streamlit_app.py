@@ -8,6 +8,11 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from ipl_predictor.common import (
+    load_support_tables as backend_load_support_tables,
+    predict_pre_match as backend_predict_pre_match,
+)
+
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -38,20 +43,11 @@ TEAM_SHORT = {
 ACTIVE_TEAMS = sorted(TEAM_COLORS.keys())
 
 # ── available models ───────────────────────────────────────────────────────────
-SCORE_MODELS = {
-    "Auto (Best)"   : ("score_model.pkl",        "wrapper"),
-    "CatBoost"      : ("score_model_cat2.pkl",   "raw"),
-    "XGBoost"       : ("score_model_xgb2.pkl",   "dict"),
-    "HGB (CPU)"     : ("score_model_hgb2.pkl",   "pipeline"),
-    "RandomForest"  : ("score_model_rf2.pkl",    "dict"),
-    "Deep Learning" : ("score_model_dl2.pkl",    "dl"),
+PRE_MATCH_SCORE_MODELS = {
+    "Pre-Match (Recommended)": ("pre_match_score_model.pkl", "pre_match"),
 }
-WIN_MODELS = {
-    "Auto (Best)"   : ("win_model.pkl",           "wrapper"),
-    "CatBoost"      : ("win_model_cat2.pkl",      "raw"),
-    "XGBoost"       : ("win_model_xgb2.pkl",      "dict"),
-    "HGB (CPU)"     : ("win_model_hgb2.pkl",      "pipeline"),
-    "Deep Learning" : ("win_model_dl2.pkl",       "dl"),
+PRE_MATCH_WIN_MODELS = {
+    "Pre-Match (Recommended)": ("pre_match_win_model.pkl", "pre_match"),
 }
 
 
@@ -81,6 +77,40 @@ def load_matchup() -> pd.DataFrame:
 def load_venue_stats() -> pd.DataFrame:
     p = PROCESSED_DIR / "venue_stats.csv"
     return pd.read_csv(p) if p.exists() else pd.DataFrame()
+
+
+@st.cache_data(show_spinner=False)
+def load_active_teams() -> list[str]:
+    p = PROCESSED_DIR / "active_teams_2026.csv"
+    if not p.exists():
+        return sorted(TEAM_COLORS.keys())
+
+    try:
+        df = pd.read_csv(p)
+    except Exception:
+        return sorted(TEAM_COLORS.keys())
+
+    if df.empty:
+        return sorted(TEAM_COLORS.keys())
+
+    if "team" in df.columns:
+        values = df["team"].dropna().astype(str).str.strip().tolist()
+    else:
+        values = df.iloc[:, 0].dropna().astype(str).str.strip().tolist()
+
+    teams = [team for team in values if team]
+    return list(dict.fromkeys(teams)) or sorted(TEAM_COLORS.keys())
+
+
+@st.cache_data(show_spinner=False)
+def load_venue_options() -> list[str]:
+    venue_df = load_venue_stats()
+    if venue_df.empty or "venue" not in venue_df.columns:
+        return []
+
+    venues = venue_df["venue"].dropna().astype(str).str.strip().tolist()
+    venues = [venue for venue in venues if venue]
+    return list(dict.fromkeys(venues))
 
 
 @st.cache_data(show_spinner=False)
@@ -133,37 +163,38 @@ def load_report() -> dict:
 
 # ── prediction helpers ─────────────────────────────────────────────────────────
 def predict_pre_match(team1: str, team2: str, venue: str,
-                      score_fname: str, win_fname: str) -> dict | None:
+                      score_fname: str, win_fname: str) -> tuple[dict | None, str | None]:
     sm = load_model(score_fname)
     wm = load_model(win_fname)
     if sm is None or wm is None:
-        return None
+        return None, "Pre-match model files are missing. Train pre-match models first."
 
-    feat = pd.DataFrame([{"batting_team": team1, "bowling_team": team2, "venue": venue}])
-
-    # score
     try:
-        if isinstance(sm, dict):
-            score = float(sm["model"].predict(sm["pre"].transform(feat))[0])
-        elif hasattr(sm, "predict"):
-            score = float(sm.predict(feat)[0])
-        else:
-            return None
-    except Exception:
-        return None
+        raw = backend_predict_pre_match(
+            team1=team1,
+            team2=team2,
+            venue=venue,
+            score_model=sm,
+            win_model=wm,
+            support_tables=backend_load_support_tables(),
+        )
+    except Exception as exc:
+        return None, f"Pre-match prediction failed: {exc}"
 
-    # win
+    if "error" in raw:
+        return None, str(raw["error"])
+
     try:
-        if isinstance(wm, dict):
-            wp = float(wm["model"].predict_proba(wm["pre"].transform(feat))[0][1])
-        elif hasattr(wm, "predict_proba"):
-            wp = float(wm.predict_proba(feat)[0][1])
-        else:
-            return None
+        score = float(raw.get("exact_predicted_score", "0"))
     except Exception:
-        return None
+        return None, "Pre-match score could not be parsed from model output."
 
-    return {"score": score, "win_prob": wp}
+    try:
+        wp = float(raw.get("win_probability_raw", 0.5))
+    except Exception:
+        return None, "Pre-match win probability could not be parsed from model output."
+
+    return {"score": score, "win_prob": wp}, None
 
 
 # ── HTML helpers ───────────────────────────────────────────────────────────────
@@ -204,13 +235,17 @@ st.title("🏏 IPL 2026 — Live Match Predictor")
 # ── sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("Match Setup")
-    team1 = st.selectbox("Team 1 (batting first)", ACTIVE_TEAMS, index=5)
-    t2_opts = [t for t in ACTIVE_TEAMS if t != team1]
-    team2 = st.selectbox("Team 2 (bowling first)", t2_opts, index=3)
+    available_teams = load_active_teams()
+    team1_default = available_teams.index("Mumbai Indians") if "Mumbai Indians" in available_teams else 0
+    team1 = st.selectbox("Team 1 (batting first)", available_teams, index=team1_default)
 
-    vs_df = load_venue_stats()
-    venues = sorted(vs_df["venue"].tolist()) if not vs_df.empty else []
-    venue = st.selectbox("Venue", venues)
+    t2_opts = [t for t in available_teams if t != team1]
+    team2_default = t2_opts.index("Chennai Super Kings") if "Chennai Super Kings" in t2_opts else 0
+    team2 = st.selectbox("Team 2 (bowling first)", t2_opts, index=team2_default)
+
+    venues = load_venue_options()
+    venue_default = venues.index("Wankhede Stadium") if "Wankhede Stadium" in venues else 0
+    venue = st.selectbox("Venue", venues, index=venue_default if venues else 0)
 
     toss_w = st.selectbox("Toss winner", ["— unknown —", team1, team2])
     toss_d = "bat"
@@ -219,14 +254,25 @@ with st.sidebar:
 
     st.divider()
     st.subheader("Model Selection")
-    score_choice = st.selectbox("Score model", list(SCORE_MODELS.keys()))
-    win_choice   = st.selectbox("Win model",   list(WIN_MODELS.keys()))
+    score_available = [name for name, (fname, _) in PRE_MATCH_SCORE_MODELS.items() if (MODELS_DIR / fname).exists()]
+    win_available = [name for name, (fname, _) in PRE_MATCH_WIN_MODELS.items() if (MODELS_DIR / fname).exists()]
+
+    score_options = score_available or list(PRE_MATCH_SCORE_MODELS.keys())
+    win_options = win_available or list(PRE_MATCH_WIN_MODELS.keys())
+
+    score_choice = st.selectbox("Score model", score_options)
+    win_choice = st.selectbox("Win model", win_options)
 
     # show which model file is selected
-    sf = SCORE_MODELS[score_choice][0]
-    wf = WIN_MODELS[win_choice][0]
+    sf = PRE_MATCH_SCORE_MODELS[score_choice][0]
+    wf = PRE_MATCH_WIN_MODELS[win_choice][0]
     st.caption(f"Score file: `{sf}`  {'✅' if (MODELS_DIR/sf).exists() else '❌ missing'}")
     st.caption(f"Win file: `{wf}`    {'✅' if (MODELS_DIR/wf).exists() else '❌ missing'}")
+
+    missing_score = [name for name in PRE_MATCH_SCORE_MODELS if name not in score_available]
+    missing_win = [name for name in PRE_MATCH_WIN_MODELS if name not in win_available]
+    if missing_score or missing_win:
+        st.info("Some model variants are hidden because their files are not available yet.")
 
     predict_btn = st.button("Predict Match", type="primary", use_container_width=True)
 
@@ -237,6 +283,7 @@ tvf_df  = load_tvf()
 pp_df   = load_players()
 bat_df  = load_batter_form()
 bow_df  = load_bowler_form()
+vs_df   = load_venue_stats()
 
 def get_form(team: str) -> float:
     r = tf_df[tf_df["team"] == team]["team_form"] if not tf_df.empty else pd.Series()
@@ -296,14 +343,13 @@ st.divider()
 
 # ── prediction result ──────────────────────────────────────────────────────────
 if predict_btn:
-    sf_file = SCORE_MODELS[score_choice][0]
-    wf_file = WIN_MODELS[win_choice][0]
+    sf_file = PRE_MATCH_SCORE_MODELS[score_choice][0]
+    wf_file = PRE_MATCH_WIN_MODELS[win_choice][0]
     with st.spinner("Running prediction…"):
-        result = predict_pre_match(team1, team2, venue, sf_file, wf_file)
+        result, error_msg = predict_pre_match(team1, team2, venue, sf_file, wf_file)
 
     if result is None:
-        st.error(f"Model files missing or not trained yet.  "
-                 f"Run `python scripts/train_all_models.py` first.")
+        st.error(error_msg or "Pre-match prediction failed.")
     else:
         wp     = result["win_prob"]
         score  = result["score"]
@@ -476,7 +522,16 @@ with tab_xi:
                 else:
                     row["Bowl Econ"] = row["Bowl SR"] = row["Wickets"] = "—"
                 rows.append(row)
-            return pd.DataFrame(rows)
+            out = pd.DataFrame(rows)
+            if out.empty:
+                return out
+
+            # Keep display columns Arrow-safe by using a consistent string type.
+            num_cols = ["Bat SR", "Bat Avg", "Balls Faced", "Bowl Econ", "Bowl SR", "Wickets"]
+            for col in num_cols:
+                out[col] = out[col].astype(str)
+
+            return out
 
         lxi1 = get_latest_xi(team1)
         lxi2 = get_latest_xi(team2)

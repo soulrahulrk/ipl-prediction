@@ -446,6 +446,7 @@ def compute_features_for_match(
                 {
                     "match_id": match_id,
                     "season": row.season,
+                    "season_str": str(row.season),
                     "start_date": row.start_date,
                     "venue": row.venue,
                     "innings": innings,

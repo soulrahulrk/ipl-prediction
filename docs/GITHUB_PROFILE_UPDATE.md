@@ -12,6 +12,11 @@ I built an IPL prediction system using Cricsheet ball-by-ball data with:
 - Pre-match winner and projected first-innings range
 - Flask app + JSON API + Streamlit dashboard + CLI
 
+### Live links
+
+- Streamlit app: https://<your-streamlit-url>
+- Flask API/Web app: https://<your-render-url>
+
 ### Current deployment snapshot
 
 - Scope: all_active_history
@@ -22,7 +27,7 @@ I built an IPL prediction system using Cricsheet ball-by-ball data with:
 
 ### Tech stack
 
-Python, pandas, scikit-learn, XGBoost, CatBoost, PyTorch, Flask, Streamlit
+Python, pandas, scikit-learn, XGBoost, CatBoost, PyTorch, Flask, Streamlit, Gunicorn
 
 ### Repo
 

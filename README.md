@@ -60,6 +60,36 @@ Held-out metrics in that report:
 - `streamlit_app.py`: interactive dashboard with model comparison and feedback panel
 - `predict_cli.py`: terminal live prediction client
 
+## Workspace Management (Clean Layout)
+
+Keep these as the main top-level runnable files:
+
+- `web_app.py`
+- `streamlit_app.py`
+- `predict_cli.py`
+
+Keep generated outputs grouped in dedicated folders:
+
+- `docs/reports/`: generated DOCX project reports
+- `docs/report_assets/`: generated report figures/images
+- `data/processed/`: generated feature/support tables
+- `models/`: active deployment artifacts and evaluation reports
+- `models/archive/`: archived/older artifacts and optional training logs
+
+Quick PowerShell cleanup for temporary clutter:
+
+```powershell
+Get-ChildItem -Path . -Directory -Filter __pycache__ -Recurse -Force |
+  Where-Object { $_.FullName -notlike "*\.venv\*" } |
+  Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+Get-ChildItem -Path . -Directory -Filter .pytest_cache -Recurse -Force |
+  Where-Object { $_.FullName -notlike "*\.venv\*" } |
+  Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+Remove-Item "docs\~$*.docx" -Force -ErrorAction SilentlyContinue
+```
+
 ## Data Layout
 
 Raw source:
@@ -160,6 +190,18 @@ Useful flags:
 - `--skip-update`: skip external data refresh
 - `--skip-pre-match`: skip pre-match retraining in that run
 
+### E) Generate project reports
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\generate_project_report.py
+& .\.venv\Scripts\python.exe scripts\generate_project_report_refined.py
+```
+
+Report outputs:
+
+- `docs/reports/IPL_Prediction_Project_Report.docx`
+- `docs/reports/IPL_Prediction_Project_Report_Refined.docx`
+
 ## Produced Artifacts
 
 Primary live deployment artifacts:
@@ -190,6 +232,11 @@ Streamlit benchmark report (when using `train_all_models.py`):
 
 - `models/all_models_report.json`
 
+Generated project reports:
+
+- `docs/reports/IPL_Prediction_Project_Report.docx`
+- `docs/reports/IPL_Prediction_Project_Report_Refined.docx`
+
 ## Run Interfaces
 
 Flask app (live + pre-match + API):
@@ -211,6 +258,82 @@ CLI live prediction:
 ```powershell
 & .\.venv\Scripts\python.exe predict_cli.py
 ```
+
+## Publish On GitHub + Make It Live
+
+### 1) Push to GitHub
+
+If this is your first push for this project:
+
+```powershell
+git init
+git add .
+git commit -m "Initial commit: IPL prediction system"
+git branch -M main
+git remote add origin https://github.com/<your-username>/ipl-prediction.git
+git push -u origin main
+```
+
+For later updates:
+
+```powershell
+git add .
+git commit -m "Update: <short description>"
+git push
+```
+
+### 2) Deploy Streamlit Dashboard (fastest)
+
+Use Streamlit Community Cloud:
+
+1. Make the repository public on GitHub.
+2. Go to <https://share.streamlit.io> and sign in with GitHub.
+3. Select repository and branch.
+4. Set app file path to `streamlit_app.py`.
+5. Click Deploy.
+
+Before deploying, make sure model artifacts are committed to `models/`:
+
+- `models/pre_match_score_model.pkl`
+- `models/pre_match_win_model.pkl`
+- `models/score_model.pkl`
+- `models/win_model.pkl`
+
+### 3) Deploy Flask API/Web App (Render)
+
+Use Render (<https://render.com>):
+
+1. New Web Service -> connect your GitHub repository.
+2. Environment: Python.
+3. Build Command:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Start Command:
+
+```bash
+gunicorn web_app:app
+```
+
+`web_app.py` is configured to use host `0.0.0.0` and Render's `PORT`.
+
+### 4) Recommended retrain pipeline before deployment
+
+Use Cricsheet pipeline end-to-end before making a release:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\update_external_data.py
+& .\.venv\Scripts\python.exe scripts\preprocess_ipl.py
+& .\.venv\Scripts\python.exe scripts\train_pre_match.py
+& .\.venv\Scripts\python.exe scripts\train_all_models.py --quick
+```
+
+### 5) Version compatibility note
+
+Saved sklearn pipelines in this repo are currently aligned to `scikit-learn 1.7.x`.
+If deploying on a new platform, ensure the environment installs the pinned range from `requirements.txt`.
 
 ## API
 

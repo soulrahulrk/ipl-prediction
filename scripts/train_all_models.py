@@ -90,6 +90,11 @@ def load_and_prepare(min_year: int = 2007) -> tuple[pd.DataFrame, pd.DataFrame, 
     """Load ipl_features, filter active teams, split train/valid/test."""
     log("Loading ipl_features.csv ...")
     df = pd.read_csv(DATA_PATH, low_memory=False)
+
+    # Backward compatibility: older feature snapshots may not include season_str.
+    if "season_str" not in df.columns and "season" in df.columns:
+        df["season_str"] = df["season"].astype(str)
+
     df["season_int"] = df["season"].apply(season_int)
 
     # Keep only active IPL teams
@@ -275,24 +280,16 @@ def train_win_models(train: pd.DataFrame, valid: pd.DataFrame, test: pd.DataFram
 
     log("  [Win] Training HistGradientBoostingClassifier ...")
     t0 = time.time()
-    hgb_pre = make_hgb_preprocessor()
     hgb_base = Pipeline([
-        ("pre", hgb_pre),
-        ("m", HistGradientBoostingClassifier(max_iter=400, max_depth=6,
-                                              learning_rate=0.07, l2_regularization=0.1,
-                                              random_state=42)),
-    ])
-    hgb_base.fit(X_tr, y_tr)
-    hgb_cal = CalibratedClassifierCV(hgb_base, method="isotonic", cv="prefit")
-    hgb_cal.fit(X_va, y_va)
-    # Final: retrain base on full train+valid, then calibrate
-    hgb_base2 = Pipeline([
         ("pre", make_hgb_preprocessor()),
         ("m", HistGradientBoostingClassifier(max_iter=400, max_depth=6,
                                               learning_rate=0.07, l2_regularization=0.1,
                                               random_state=42)),
     ])
-    hgb_base2.fit(X_tv, y_tv)
+    # sklearn>=1.8 no longer supports cv="prefit" in CalibratedClassifierCV.
+    # Fit calibrated model directly on train+valid with CV-based calibration.
+    hgb_cal = CalibratedClassifierCV(hgb_base, method="isotonic", cv=5)
+    hgb_cal.fit(X_tv, y_tv)
     r = _win_metrics(hgb_cal, X_te, y_te, "HGB", time.time() - t0)
     results.append(r)
     joblib.dump(hgb_cal, MODELS_DIR / "win_model_hgb2.pkl")

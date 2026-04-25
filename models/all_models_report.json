@@ -1,0 +1,29 @@
+{
+  "trained_at": "2026-04-24T10:32:02",
+  "test_season": 2026,
+  "promoted": {
+    "score": "HGB",
+    "win": "HGB"
+  },
+  "score_models": [
+    {
+      "model": "HGB",
+      "task": "score",
+      "test_mae": 27.045,
+      "test_rmse": 33.652,
+      "train_secs": 16.6,
+      "val_mae": 23.789
+    }
+  ],
+  "win_models": [
+    {
+      "model": "HGB",
+      "task": "win",
+      "test_accuracy": 0.648,
+      "test_log_loss": 0.6171,
+      "test_brier": 0.2149,
+      "train_secs": 78.7
+    }
+  ],
+  "total_train_secs": 108.5
+}
