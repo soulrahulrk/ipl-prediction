@@ -178,7 +178,7 @@ def train_score_models(train: pd.DataFrame, valid: pd.DataFrame, test: pd.DataFr
     r = _score_metrics(hgb, X_te, y_te, "HGB", time.time() - t0)
     r["val_mae"] = round(float(mean_absolute_error(y_va, hgb.predict(X_va))), 3)
     results.append(r)
-    joblib.dump(hgb, MODELS_DIR / "score_model_hgb2.pkl")
+    joblib.dump(hgb, MODELS_DIR / "score_model_hgb.pkl")
 
     if not quick:
         log("  [Score] Training XGBoost ...")
@@ -292,7 +292,7 @@ def train_win_models(train: pd.DataFrame, valid: pd.DataFrame, test: pd.DataFram
     hgb_cal.fit(X_tv, y_tv)
     r = _win_metrics(hgb_cal, X_te, y_te, "HGB", time.time() - t0)
     results.append(r)
-    joblib.dump(hgb_cal, MODELS_DIR / "win_model_hgb2.pkl")
+    joblib.dump(hgb_cal, MODELS_DIR / "win_model_hgb.pkl")
 
     if not quick:
         log("  [Win] Training XGBoost ...")
@@ -572,7 +572,7 @@ def _win_metrics_raw(model, X_te, y_te, name: str, elapsed: float) -> dict:
 def promote_best(score_results: list[dict], win_results: list[dict]) -> dict:
     """Pick best models and copy to score_model.pkl / win_model.pkl."""
     model_file_map = {
-        "HGB":         ("score_model_hgb2.pkl", "win_model_hgb2.pkl"),
+        "HGB":         ("score_model_hgb.pkl", "win_model_hgb.pkl"),
         "XGBoost":     ("score_model_xgb2.pkl", "win_model_xgb2.pkl"),
         "CatBoost":    ("score_model_cat2.pkl", "win_model_cat2.pkl"),
         "RandomForest":("score_model_rf2.pkl",  None),

@@ -536,7 +536,7 @@ def main() -> None:
     }
 
     cpu_win_raw_path = MODELS_DIR / "win_model_hgb_raw.pkl"
-    cpu_win_cal_path = MODELS_DIR / "win_model_hgb_calibrated.pkl"
+    cpu_win_cal_path = MODELS_DIR / "win_model_hgb.pkl"
     if cpu_win_raw_path.exists():
         cpu_win_raw = joblib.load(cpu_win_raw_path)
         win_candidates["cpu_hgb_raw"] = cpu_win_raw

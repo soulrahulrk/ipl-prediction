@@ -339,10 +339,11 @@ def train_win_model(df: pd.DataFrame) -> dict:
     print(f"  Log Loss: {calibrated_metrics['log_loss']:.4f}")
     print(f"  Brier Score: {calibrated_metrics['brier']:.4f}")
 
-    joblib.dump(raw_pipeline, MODELS_DIR / "win_model_hgb_raw.pkl")
-    joblib.dump(calibrated, MODELS_DIR / "win_model_hgb_calibrated.pkl")
+    win_raw_path = MODELS_DIR / "win_model_hgb_raw.pkl"
+    win_best_path = MODELS_DIR / "win_model_hgb.pkl"
+    joblib.dump(raw_pipeline, win_raw_path)
     joblib.dump(best_model, MODELS_DIR / "win_model.pkl")
-    joblib.dump(best_model, MODELS_DIR / "win_model_hgb.pkl")
+    joblib.dump(best_model, win_best_path)
     print("\n✓ Model saved to models/win_model.pkl")
 
     return {
