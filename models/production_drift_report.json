@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-04-16T03:45:50.952884+00:00",
+  "updated_at": "2026-05-01T07:47:21.774242+00:00",
   "window": 500,
-  "events_used": 37,
+  "events_used": 43,
   "outcomes_used": 4,
   "status": "insufficient_data",
   "feature_drift": {},
@@ -10,11 +10,11 @@
     "status": "insufficient_data",
     "metrics": {},
     "baseline": {
-      "score_mae": 16.20685638086756,
-      "score_rmse": 22.20360786089806,
-      "win_log_loss": 0.6759302512767532,
-      "win_brier": 0.2348690568365511,
-      "win_accuracy": 0.6243575418994414
+      "score_mae": 18.596462015368274,
+      "score_rmse": 25.234718132895207,
+      "win_log_loss": 0.7133234793568441,
+      "win_brier": 0.2473272820991439,
+      "win_accuracy": 0.6058201058201058
     },
     "warnings": [],
     "critical": []

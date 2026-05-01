@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Invites - IPL Predictor</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="card form">
+      <h1>Admin - Invite Management</h1>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endwith %}
+      <form method="post">
+        <label>Invite for email (optional)
+          <input type="email" name="email">
+        </label>
+        <button class="cta" type="submit">Create invite</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Recent Invites</h2>
+      <table>
+        <thead>
+          <tr><th>Token</th><th>Email</th><th>Created</th><th>Used</th></tr>
+        </thead>
+        <tbody>
+          {% for inv in invites %}
+          <tr>
+            <td>{{ inv.token }}</td>
+            <td>{{ inv.email or '-' }}</td>
+            <td>{{ inv.created_at }}</td>
+            <td>{{ inv.used_at or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Recent Users</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Email</th><th>Admin</th><th>Created</th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.is_admin }}</td>
+            <td>{{ u.created_at }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

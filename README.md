@@ -335,14 +335,95 @@ Use Cricsheet pipeline end-to-end before making a release:
 Saved sklearn pipelines in this repo are currently aligned to `scikit-learn 1.7.x`.
 If deploying on a new platform, ensure the environment installs the pinned range from `requirements.txt`.
 
+## Environment Variables (Optional)
+
+The app runs without any env vars using SQLite defaults. For production or custom setups:
+
+- `DATABASE_URL`: SQLAlchemy connection string (default: `sqlite:///ipl_saas.db`)
+- `SECRET_KEY`: Flask session key (default: auto-generated dev key)
+- `PORT`: server port (default: `5000`)
+- `MONITORING_STORAGE`: `database` or `file` (default: `database`)
+- `MODEL_STORAGE_BACKEND`: `local` or `object` (default: `local`)
+- `MODEL_STORAGE_URI_PREFIX`: prefix for object storage URIs (e.g. `s3://...`)
+
+## Database Migrations (Alembic)
+
+Run migrations before starting web app in deployed environments:
+
+```powershell
+& .\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+Create a new migration after schema changes:
+
+```powershell
+& .\.venv\Scripts\python.exe -m alembic revision --autogenerate -m "describe change"
+```
+
+## Import Legacy Monitoring JSONL Into Database
+
+To migrate existing local monitoring logs into database-backed tables:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\import_legacy_monitoring_jsonl.py
+```
+
+Optional custom paths:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\import_legacy_monitoring_jsonl.py --events data\monitoring\prediction_events.jsonl --outcomes data\monitoring\prediction_outcomes.jsonl
+```
+
+## Run Locally
+
+Dev run:
+
+```powershell
+& .\.venv\Scripts\python.exe web_app.py
+```
+
+Prod-like local run:
+
+```powershell
+& .\.venv\Scripts\python.exe -m alembic upgrade head
+gunicorn web_app:app
+```
+
+Health check:
+
+- `GET /healthz`
+
+## Deploy Checklist (Render/Fly/Railway)
+
+1. Set `DATABASE_URL` to managed Postgres.
+2. Set strong `SECRET_KEY`.
+3. Run `alembic upgrade head` on deploy.
+4. Start service with `gunicorn web_app:app`.
+5. Verify `/healthz` returns healthy status.
+
+Reference deployment files:
+
+- `Dockerfile`
+- `render.yaml`
+- `.github/workflows/ci.yml`
+
+## Artifact Policy and Model Storage
+
+- Keep runtime-critical artifacts only in repository.
+- Avoid committing transient monitoring logs and experiment dumps.
+- For production, prefer object storage for model binaries:
+  - `MODEL_STORAGE_BACKEND=object`
+  - `MODEL_STORAGE_URI_PREFIX=s3://...` (or compatible)
+
 ## API
 
-Endpoint:
+Endpoints:
 
 - `POST /api/predict`
 - `GET /api/monitoring`
+- `GET /api/history`
 
-Minimal JSON payload:
+Minimal JSON payload for `/api/predict`:
 
 ```json
 {

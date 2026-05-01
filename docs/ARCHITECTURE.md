@@ -95,3 +95,30 @@ Streamlit:
 - ipl_predictor/ensembles.py: weighted regressor/classifier ensembles
 - ipl_predictor/live_data.py: weather context and dew risk helpers
 - ipl_predictor/torch_tabular.py: entity-embedding tabular DL models
+
+## SaaS Layer (Current)
+
+The project now includes a secure persistence layer around ML inference:
+
+- Auth: invite-only signup, login/logout, admin role
+- DB: SQLAlchemy models for users, matches, predictions, outcomes, model versions, audit logs
+- Migrations: Alembic (`alembic/`)
+- Validation: Marshmallow request schemas for prediction and outcome payloads
+- Protection: route guards, CSRF for forms, and write/login rate limits
+- Monitoring: DB-first monitoring read path with compatibility fallback to local files
+
+### Request Lifecycle (API Predict)
+
+1. User authenticates via session.
+2. `/api/predict` validates payload schema and cricket constraints.
+3. Inference runs through existing feature engineering/model path.
+4. Prediction is persisted with user_id, match_id, input payload, output payload, and model version IDs.
+5. Monitoring event IDs continue flowing in prediction payloads for drift/outcome linkage.
+
+### Request Lifecycle (Outcome)
+
+1. Admin submits outcome to `/api/monitoring/outcome`.
+2. Payload is validated.
+3. Outcome row is upserted against stored prediction.
+4. Error metrics (score absolute error and win brier error) are computed and persisted.
+5. Drift report is recalculated via monitoring subsystem.

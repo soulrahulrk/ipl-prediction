@@ -41,6 +41,7 @@ catboost_experiments/
 
 # Generated data (keep raw data)
 data/processed/
+data/monitoring/
 
 # Model files (except production models)
 models/*_gpu_*.pkl
@@ -50,6 +51,11 @@ models/*_cat.pkl
 models/gpu_model_report.json
 !models/score_model.pkl
 !models/win_model.pkl
+models/archive/
+models/*.csv
+models/*_report.json
+!models/deployment_report.json
+!models/model_registry.json
 
 # Logs and temp
 logs/
@@ -57,8 +63,28 @@ logs/
 .streamlit/
 flask_session/
 
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
 # OS-specific
 .DS_Store
 Thumbs.db
 .env
 .env.local
+
+# Office temp lock files
+docs/~$*
+
+# Local utility scripts
+start_ngrok.ps1
+get_docx_stats.ps1
+docs/inspect_docx.ps1
+
+# Reports and generated documentation assets
+docs/reports/
+docs/report_assets/
+
+# Local notebooks and caches
+notebooks/archive/

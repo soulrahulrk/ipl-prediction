@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPL Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <main class="page">
+
+    <!-- NAV -->
+    <nav class="dash-nav">
+      <a href="/" class="nav-brand">🏏 IPL Predictor</a>
+      <a href="/dashboard" class="nav-link active">Dashboard</a>
+      <a href="/" class="nav-link">Predict</a>
+    </nav>
+
+    <!-- TEAM SELECTOR -->
+    <section class="card selector-card">
+      <div class="selector-row">
+        <div class="selector-group">
+          <label>Team 1</label>
+          <select id="sel-team1">
+            {% set teams = [
+              'Chennai Super Kings','Delhi Capitals','Gujarat Titans',
+              'Kolkata Knight Riders','Lucknow Super Giants','Mumbai Indians',
+              'Punjab Kings','Rajasthan Royals','Royal Challengers Bengaluru',
+              'Sunrisers Hyderabad'
+            ] %}
+            {% for t in teams %}
+            <option value="{{ t }}" {% if t == 'Mumbai Indians' %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="selector-group">
+          <label>Team 2</label>
+          <select id="sel-team2">
+            {% for t in teams %}
+            <option value="{{ t }}" {% if t == 'Chennai Super Kings' %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="selector-group">
+          <label>Venue</label>
+          <select id="sel-venue">
+            {% set venues = [
+              'Wankhede Stadium','Eden Gardens','M. Chinnaswamy Stadium',
+              'MA Chidambaram Stadium','Narendra Modi Stadium',
+              'Rajiv Gandhi International Stadium','Sawai Mansingh Stadium',
+              'Arun Jaitley Stadium','Punjab Cricket Association IS Bindra Stadium, Mohali, Chandigarh',
+              'DY Patil Stadium','Brabourne Stadium','Ekana Cricket Stadium',
+              'Holkar Cricket Stadium','HPCA Stadium','Saurashtra Cricket Association Stadium',
+              'Barsapara Cricket Stadium, Guwahati','ACA-VDCA Stadium',
+              'Maharaja Yadavindra Singh International Cricket Stadium, Mullanpur',
+              'Maharashtra Cricket Association Stadium','Dubai International Cricket Stadium',
+              'Sharjah Cricket Stadium','Sheikh Zayed Stadium',
+            ] %}
+            {% for v in venues %}
+            <option value="{{ v }}">{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="cta" id="load-btn" onclick="loadDashboard()">Load Stats</button>
+      </div>
+    </section>
+
+    <!-- TEAM HEADER -->
+    <section id="team-header" class="card team-header hidden">
+      <div class="team-banner" id="banner1">
+        <span class="team-name" id="t1-name"></span>
+        <span class="team-form-label">Recent form</span>
+        <span class="form-badge" id="t1-form"></span>
+        <span class="venue-form-label">At venue</span>
+        <span class="form-badge" id="t1-vform"></span>
+      </div>
+      <div class="vs-center">VS</div>
+      <div class="team-banner" id="banner2">
+        <span class="team-name" id="t2-name"></span>
+        <span class="team-form-label">Recent form</span>
+        <span class="form-badge" id="t2-form"></span>
+        <span class="venue-form-label">At venue</span>
+        <span class="form-badge" id="t2-vform"></span>
+      </div>
+    </section>
+
+    <!-- WIN BAR -->
+    <div id="win-bar-wrap" class="hidden">
+      <div class="win-bar" id="win-bar"></div>
+    </div>
+
+    <!-- LOADING -->
+    <div id="loading" class="hidden loading-state">Loading data…</div>
+
+    <!-- TABS -->
+    <div id="dash-content" class="hidden">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('team-form',this)">📊 Team Form</button>
+        <button class="tab" onclick="switchTab('h2h',this)">⚔️ Head-to-Head</button>
+        <button class="tab" onclick="switchTab('venue',this)">🏟️ Venue</button>
+        <button class="tab" onclick="switchTab('players',this)">👤 Players</button>
+        <button class="tab" onclick="switchTab('models',this)">🤖 Models</button>
+      </div>
+
+      <!-- TAB: TEAM FORM -->
+      <div class="tab-panel card" id="tab-team-form">
+        <h2>Team Form (Win % last 5 matches)</h2>
+        <div class="two-col">
+          <div>
+            <div class="stat-row" id="t1-form-detail"></div>
+            <div class="stat-row" id="t2-form-detail"></div>
+          </div>
+        </div>
+        <canvas id="chart-team-form" height="90"></canvas>
+      </div>
+
+      <!-- TAB: HEAD TO HEAD -->
+      <div class="tab-panel card hidden" id="tab-h2h">
+        <h2>Head-to-Head</h2>
+        <div class="metric-row" id="h2h-metrics"></div>
+        <canvas id="chart-h2h" height="80"></canvas>
+        <h3 style="margin-top:24px">Full H2H Record</h3>
+        <div id="h2h-table-wrap"></div>
+      </div>
+
+      <!-- TAB: VENUE -->
+      <div class="tab-panel card hidden" id="tab-venue">
+        <h2 id="venue-title">Venue Stats</h2>
+        <div class="metric-row" id="venue-metrics"></div>
+        <h3 style="margin-top:24px">Team Win % at this Venue</h3>
+        <canvas id="chart-venue-teams" height="100"></canvas>
+        <h3 style="margin-top:28px">Top 15 Venues by Avg 1st Innings Score</h3>
+        <canvas id="chart-venues" height="120"></canvas>
+      </div>
+
+      <!-- TAB: PLAYERS -->
+      <div class="tab-panel hidden" id="tab-players">
+        <div class="two-col">
+          <div class="card">
+            <h3 id="p1-title"></h3>
+            <h4>Top Batters</h4>
+            <div id="bat1-table"></div>
+            <h4 style="margin-top:20px">Top Bowlers</h4>
+            <div id="bow1-table"></div>
+            <details style="margin-top:16px">
+              <summary class="squad-toggle">Full Squad</summary>
+              <div id="squad1-table"></div>
+            </details>
+          </div>
+          <div class="card">
+            <h3 id="p2-title"></h3>
+            <h4>Top Batters</h4>
+            <div id="bat2-table"></div>
+            <h4 style="margin-top:20px">Top Bowlers</h4>
+            <div id="bow2-table"></div>
+            <details style="margin-top:16px">
+              <summary class="squad-toggle">Full Squad</summary>
+              <div id="squad2-table"></div>
+            </details>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Key Batter vs Bowler Matchups</h3>
+          <div class="two-col">
+            <div>
+              <h4 id="mu1-title"></h4>
+              <div id="mu1-table"></div>
+            </div>
+            <div>
+              <h4 id="mu2-title"></h4>
+              <div id="mu2-table"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: MODELS -->
+      <div class="tab-panel card hidden" id="tab-models">
+        <h2>Model Comparison</h2>
+        <p id="model-meta" class="muted-text"></p>
+        <div id="score-models-wrap">
+          <h3>Score Models (lower RMSE = better)</h3>
+          <div id="score-table"></div>
+          <canvas id="chart-score" height="80" style="margin-top:16px"></canvas>
+        </div>
+        <div id="win-models-wrap" style="margin-top:28px">
+          <h3>Win Models (higher accuracy = better)</h3>
+          <div id="win-table"></div>
+          <canvas id="chart-win" height="80" style="margin-top:16px"></canvas>
+        </div>
+        <div id="no-model-msg" class="hidden muted-text" style="margin-top:16px">
+          No model report found. Run <code>python scripts/train_all_models.py</code> to generate it.
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+  const TEAM_COLORS = {{ team_colors | tojson }};
+
+  let charts = {};
+
+  function destroyChart(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  }
+
+  function formColor(pct) {
+    if (pct >= 60) return '#22c55e';
+    if (pct >= 40) return '#f59e0b';
+    return '#ef4444';
+  }
+
+  function formBadge(pct) {
+    if (pct === null || pct === undefined) return '<span class="badge muted">—</span>';
+    const c = formColor(pct);
+    return `<span class="badge" style="background:${c}">${pct}%</span>`;
+  }
+
+  function makeTable(rows, cols) {
+    if (!rows || rows.length === 0) return '<p class="muted-text">No data available.</p>';
+    let html = '<table class="data-table"><thead><tr>';
+    cols.forEach(c => html += `<th>${c}</th>`);
+    html += '</tr></thead><tbody>';
+    rows.forEach(r => {
+      html += '<tr>';
+      cols.forEach(c => html += `<td>${r[c] ?? '—'}</td>`);
+      html += '</tr>';
+    });
+    return html + '</tbody></table>';
+  }
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.remove('hidden');
+    btn.classList.add('active');
+  }
+
+  function makeBarChart(id, labels, values, colors, label) {
+    destroyChart(id);
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    charts[id] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ label, data: values, backgroundColor: colors || '#e95d0f', borderRadius: 6 }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#b7b4ae', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#b7b4ae' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  }
+
+  function loadDashboard() {
+    const team1 = document.getElementById('sel-team1').value;
+    const team2 = document.getElementById('sel-team2').value;
+    const venue = document.getElementById('sel-venue').value;
+
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('dash-content').classList.add('hidden');
+    document.getElementById('team-header').classList.add('hidden');
+    document.getElementById('win-bar-wrap').classList.add('hidden');
+
+    fetch(`/api/dashboard-data?team1=${encodeURIComponent(team1)}&team2=${encodeURIComponent(team2)}&venue=${encodeURIComponent(venue)}`)
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('loading').classList.add('hidden');
+        renderDashboard(d);
+      })
+      .catch(err => {
+        document.getElementById('loading').textContent = 'Error loading data: ' + err;
+      });
+  }
+
+  function renderDashboard(d) {
+    // Team header
+    document.getElementById('banner1').style.background = d.team1_color;
+    document.getElementById('banner2').style.background = d.team2_color;
+    document.getElementById('t1-name').textContent = d.team1;
+    document.getElementById('t2-name').textContent = d.team2;
+    document.getElementById('t1-form').innerHTML = formBadge(d.team1_form);
+    document.getElementById('t2-form').innerHTML = formBadge(d.team2_form);
+    document.getElementById('t1-vform').innerHTML = formBadge(d.team1_venue_form);
+    document.getElementById('t2-vform').innerHTML = formBadge(d.team2_venue_form);
+    document.getElementById('team-header').classList.remove('hidden');
+
+    // Win bar (H2H)
+    if (d.h2h_t1 !== null && d.h2h_t2 !== null) {
+      const bar = document.getElementById('win-bar');
+      bar.innerHTML = `
+        <div style="width:${d.h2h_t1}%;background:${d.team1_color}" class="win-seg">
+          ${d.team1_short} ${d.h2h_t1}%
+        </div>
+        <div style="width:${d.h2h_t2}%;background:${d.team2_color}" class="win-seg win-seg-right">
+          ${d.h2h_t2}% ${d.team2_short}
+        </div>`;
+      document.getElementById('win-bar-wrap').classList.remove('hidden');
+    }
+
+    // ── Team Form tab ──
+    document.getElementById('t1-form-detail').innerHTML =
+      `<span style="color:${d.team1_color};font-weight:700">${d.team1}</span> &nbsp; Recent: ${formBadge(d.team1_form)} &nbsp; At ${d.venue || 'venue'}: ${formBadge(d.team1_venue_form)}`;
+    document.getElementById('t2-form-detail').innerHTML =
+      `<span style="color:${d.team2_color};font-weight:700">${d.team2}</span> &nbsp; Recent: ${formBadge(d.team2_form)} &nbsp; At ${d.venue || 'venue'}: ${formBadge(d.team2_venue_form)}`;
+
+    if (d.all_teams_form.length) {
+      makeBarChart('chart-team-form',
+        d.all_teams_form.map(r => r.team),
+        d.all_teams_form.map(r => r.win_pct),
+        d.all_teams_form.map(r => TEAM_COLORS[r.team] || '#e95d0f'),
+        'Win %'
+      );
+    }
+
+    // ── H2H tab ──
+    let h2hMetrics = '';
+    if (d.h2h_t1 !== null) {
+      h2hMetrics += `<div class="metric-tile"><p class="label">${d.team1_short} win rate vs ${d.team2_short}</p><p class="big-val">${d.h2h_t1}%</p></div>`;
+      h2hMetrics += `<div class="metric-tile"><p class="label">${d.team2_short} win rate vs ${d.team1_short}</p><p class="big-val">${d.h2h_t2}%</p></div>`;
+    } else {
+      h2hMetrics = '<p class="muted-text">No head-to-head data found for this matchup.</p>';
+    }
+    document.getElementById('h2h-metrics').innerHTML = h2hMetrics;
+
+    if (d.h2h_t1 !== null) {
+      makeBarChart('chart-h2h',
+        [d.team1_short, d.team2_short],
+        [d.h2h_t1, d.h2h_t2],
+        [d.team1_color, d.team2_color],
+        'H2H Win %'
+      );
+    }
+    document.getElementById('h2h-table-wrap').innerHTML = makeTable(d.h2h_table, ['team','opponent','Win %']);
+
+    // ── Venue tab ──
+    document.getElementById('venue-title').textContent = 'Venue Stats — ' + (d.venue || '—');
+    let venueMetrics = '';
+    if (d.venue_row) {
+      venueMetrics = `
+        <div class="metric-tile"><p class="label">Avg 1st Innings</p><p class="big-val">${d.venue_row.avg_first}</p></div>
+        <div class="metric-tile"><p class="label">Avg 2nd Innings</p><p class="big-val">${d.venue_row.avg_second}</p></div>
+        <div class="metric-tile"><p class="label">Bat-First Win Rate</p><p class="big-val">${d.venue_row.bat_first_win}%</p></div>`;
+    } else {
+      venueMetrics = '<p class="muted-text">No venue stats available for this venue.</p>';
+    }
+    document.getElementById('venue-metrics').innerHTML = venueMetrics;
+
+    if (d.venue_team_form.length) {
+      makeBarChart('chart-venue-teams',
+        d.venue_team_form.map(r => r.team),
+        d.venue_team_form.map(r => r.win_pct),
+        d.venue_team_form.map(r => TEAM_COLORS[r.team] || '#e95d0f'),
+        'Win % at venue'
+      );
+    }
+    if (d.top15_venues.length) {
+      makeBarChart('chart-venues',
+        d.top15_venues.map(r => r.venue),
+        d.top15_venues.map(r => r.avg),
+        '#e95d0f',
+        'Avg 1st innings'
+      );
+    }
+
+    // ── Players tab ──
+    document.getElementById('p1-title').innerHTML = `<span style="color:${d.team1_color}">${d.team1}</span>`;
+    document.getElementById('p2-title').innerHTML = `<span style="color:${d.team2_color}">${d.team2}</span>`;
+    document.getElementById('bat1-table').innerHTML = makeTable(d.batters1, ['Player','SR','Avg','Balls']);
+    document.getElementById('bat2-table').innerHTML = makeTable(d.batters2, ['Player','SR','Avg','Balls']);
+    document.getElementById('bow1-table').innerHTML = makeTable(d.bowlers1, ['Player','Economy','SR','Balls']);
+    document.getElementById('bow2-table').innerHTML = makeTable(d.bowlers2, ['Player','Economy','SR','Balls']);
+    document.getElementById('squad1-table').innerHTML = makeTable(d.squad1, ['player','appearances']);
+    document.getElementById('squad2-table').innerHTML = makeTable(d.squad2, ['player','appearances']);
+
+    document.getElementById('mu1-title').textContent = `${d.team1_short} batters vs ${d.team2_short} bowlers`;
+    document.getElementById('mu2-title').textContent = `${d.team2_short} batters vs ${d.team1_short} bowlers`;
+    document.getElementById('mu1-table').innerHTML = d.matchups_t1_bat.length
+      ? makeTable(d.matchups_t1_bat, ['Batter','Bowler','Balls','Runs','SR'])
+      : '<p class="muted-text">Not enough balls in this matchup.</p>';
+    document.getElementById('mu2-table').innerHTML = d.matchups_t2_bat.length
+      ? makeTable(d.matchups_t2_bat, ['Batter','Bowler','Balls','Runs','SR'])
+      : '<p class="muted-text">Not enough balls in this matchup.</p>';
+
+    // ── Models tab ──
+    const rep = d.model_report;
+    if (rep && (rep.score_models || rep.win_models)) {
+      document.getElementById('no-model-msg').classList.add('hidden');
+      document.getElementById('model-meta').textContent =
+        `Trained: ${rep.trained_at || '—'} | Test season: ${rep.test_season || '—'} | Promoted score: ${rep.promoted?.score || '—'} win: ${rep.promoted?.win || '—'}`;
+
+      const sc = (rep.score_models || []).map(r => ({
+        Model: r.model, 'Test MAE': r.test_mae?.toFixed(2), 'Test RMSE': r.test_rmse?.toFixed(2),
+        'Val MAE': r.val_mae?.toFixed(2), 'Time (s)': r.train_secs?.toFixed(1)
+      })).sort((a,b) => parseFloat(a['Test RMSE']) - parseFloat(b['Test RMSE']));
+
+      document.getElementById('score-table').innerHTML = makeTable(sc, ['Model','Test MAE','Test RMSE','Val MAE','Time (s)']);
+      if (sc.length) {
+        makeBarChart('chart-score', sc.map(r=>r.Model), sc.map(r=>parseFloat(r['Test RMSE'])), '#e95d0f', 'Test RMSE');
+      }
+
+      const wn = (rep.win_models || []).map(r => ({
+        Model: r.model, Accuracy: (r.test_accuracy*100)?.toFixed(1)+'%',
+        'Log Loss': r.test_log_loss?.toFixed(4), Brier: r.test_brier?.toFixed(4),
+        'Time (s)': r.train_secs?.toFixed(1), _acc: r.test_accuracy
+      })).sort((a,b) => b._acc - a._acc);
+
+      document.getElementById('win-table').innerHTML = makeTable(wn, ['Model','Accuracy','Log Loss','Brier','Time (s)']);
+      if (wn.length) {
+        makeBarChart('chart-win', wn.map(r=>r.Model), wn.map(r=>parseFloat(r._acc*100).toFixed(1)), '#ffb347', 'Accuracy %');
+      }
+    } else {
+      document.getElementById('no-model-msg').classList.remove('hidden');
+      document.getElementById('score-models-wrap').classList.add('hidden');
+      document.getElementById('win-models-wrap').classList.add('hidden');
+    }
+
+    document.getElementById('dash-content').classList.remove('hidden');
+  }
+
+  // Auto-load on page open
+  window.addEventListener('DOMContentLoaded', loadDashboard);
+  </script>
+</body>
+</html>

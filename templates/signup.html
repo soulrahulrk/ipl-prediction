@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - IPL Predictor</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="card form" style="max-width:520px;margin:48px auto;">
+      <h1>Create account</h1>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endwith %}
+      <form method="post" action="{{ url_for('signup') }}">
+        <label>Email
+          <input type="email" name="email" required>
+        </label>
+        <label>Password
+          <input type="password" name="password" required>
+        </label>
+        <button class="cta" type="submit">Create account</button>
+      </form>
+      <p class="small-copy"><a href="{{ url_for('login') }}">Already have an account? Sign in</a></p>
+    </section>
+  </main>
+</body>
+</html>

@@ -2,21 +2,21 @@
   "deployment_scope": "all_active_history",
   "deployment_score_model": "xgboost_gpu",
   "deployment_score_metrics_test": {
-    "mae": 16.20685638086756,
-    "rmse": 22.20360786089806,
-    "weighted_mae": 15.430135660480373,
-    "weighted_rmse": 21.303609385541225,
-    "weighted_abs_error_p90": 33.39508056640625,
-    "robust_objective": 20.180593200140553
+    "mae": 18.596462015368274,
+    "rmse": 25.234718132895207,
+    "weighted_mae": 17.7901646414939,
+    "weighted_rmse": 24.300582016078494,
+    "weighted_abs_error_p90": 40.535003662109375,
+    "robust_objective": 23.48053657569083
   },
   "deployment_win_model": "hgb_calibrated",
   "deployment_win_metrics_test": {
-    "log_loss": 0.6759302512767532,
-    "brier": 0.2348690568365511,
-    "accuracy": 0.6243575418994414
+    "log_loss": 0.7133234793568441,
+    "brier": 0.2473272820991439,
+    "accuracy": 0.6058201058201058
   },
   "training_filter": {
-    "rows_after_filter": 238672,
+    "rows_after_filter": 243922,
     "min_season_included": 2007,
     "max_season_included": 2026,
     "score_min_total_runs": 40.0,

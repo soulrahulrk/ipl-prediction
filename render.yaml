@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ipl-predictor
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn web_app:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ipl-predictor-db
+          property: connectionString
+      - key: MONITORING_STORAGE
+        value: database
+      - key: SESSION_COOKIE_SECURE
+        value: true
+
+databases:
+  - name: ipl-predictor-db
+    plan: free

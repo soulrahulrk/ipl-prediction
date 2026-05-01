@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -125,6 +126,12 @@ def _ensure_dirs() -> None:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _db_enabled() -> bool:
+    backend = os.getenv("MONITORING_STORAGE", "database").strip().lower()
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    return backend == "database" and bool(database_url)
+
+
 def _feature_stats(series: pd.Series) -> dict[str, float]:
     clean = pd.to_numeric(series, errors="coerce")
     return {
@@ -199,16 +206,70 @@ def load_or_create_reference_profile() -> dict[str, Any]:
 
 
 def _append_event(event: Mapping[str, Any]) -> None:
+    if _db_enabled():
+        try:
+            from .db import get_db_session
+            from .models import MonitoringEvent
+
+            db_session = get_db_session()
+            existing = db_session.query(MonitoringEvent).filter(MonitoringEvent.event_id == str(event.get("event_id", ""))).one_or_none()
+            if existing is None:
+                db_session.add(MonitoringEvent(event_id=str(event.get("event_id", "")), event_payload=dict(event)))
+                db_session.commit()
+            return
+        except Exception:
+            pass
     with EVENT_LOG_PATH.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(dict(event), ensure_ascii=True) + "\n")
 
 
 def _append_outcome(outcome: Mapping[str, Any]) -> None:
+    if _db_enabled():
+        try:
+            from .db import get_db_session
+            from .models import MonitoringOutcome
+
+            db_session = get_db_session()
+            canonical = json.dumps(dict(outcome), sort_keys=True, ensure_ascii=True)
+            payload_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+            existing = (
+                db_session.query(MonitoringOutcome)
+                .filter(MonitoringOutcome.payload_hash == payload_hash)
+                .one_or_none()
+            )
+            if existing is None:
+                db_session.add(
+                    MonitoringOutcome(
+                        event_id=str(outcome.get("event_id", "")).strip() or None,
+                        payload_hash=payload_hash,
+                        outcome_payload=dict(outcome),
+                    )
+                )
+                db_session.commit()
+            return
+        except Exception:
+            pass
     with OUTCOME_LOG_PATH.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(dict(outcome), ensure_ascii=True) + "\n")
 
 
 def _read_recent_events(window: int = 500) -> list[dict[str, Any]]:
+    if _db_enabled():
+        try:
+            from .db import get_db_session
+            from .models import MonitoringEvent
+
+            db_session = get_db_session()
+            rows = (
+                db_session.query(MonitoringEvent)
+                .order_by(MonitoringEvent.created_at.desc())
+                .limit(window)
+                .all()
+            )
+            return [dict(row.event_payload) for row in reversed(rows)]
+        except Exception:
+            pass
+
     if not EVENT_LOG_PATH.exists():
         return []
 
@@ -223,6 +284,17 @@ def _read_recent_events(window: int = 500) -> list[dict[str, Any]]:
 
 
 def _find_event_by_id(event_id: str, search_window: int = 5000) -> dict[str, Any] | None:
+    if _db_enabled():
+        try:
+            from .db import get_db_session
+            from .models import MonitoringEvent
+
+            db_session = get_db_session()
+            row = db_session.query(MonitoringEvent).filter(MonitoringEvent.event_id == str(event_id)).one_or_none()
+            return dict(row.event_payload) if row else None
+        except Exception:
+            pass
+
     for event in reversed(_read_recent_events(window=search_window)):
         if str(event.get("event_id", "")) == str(event_id):
             return event
@@ -230,6 +302,46 @@ def _find_event_by_id(event_id: str, search_window: int = 5000) -> dict[str, Any
 
 
 def _read_recent_outcomes(window: int = 500) -> list[dict[str, Any]]:
+    if _db_enabled():
+        try:
+            from .db import get_db_session
+            from .models import MonitoringOutcome, PredictionOutcome, Prediction
+
+            db_session = get_db_session()
+            outcome_rows = (
+                db_session.query(MonitoringOutcome)
+                .order_by(MonitoringOutcome.created_at.desc())
+                .limit(window)
+                .all()
+            )
+            if outcome_rows:
+                return [dict(row.outcome_payload) for row in reversed(outcome_rows)]
+
+            rows = (
+                db_session.query(PredictionOutcome, Prediction)
+                .join(Prediction, Prediction.id == PredictionOutcome.prediction_id)
+                .order_by(PredictionOutcome.resolved_at.desc())
+                .limit(window)
+                .all()
+            )
+            out: list[dict[str, Any]] = []
+            for outcome, prediction in rows:
+                output_payload = prediction.output_payload or {}
+                out.append(
+                    {
+                        "timestamp_utc": outcome.resolved_at.isoformat() if outcome.resolved_at else "",
+                        "event_id": prediction.monitoring_event_id or "",
+                        "match_id": str(prediction.match_id or ""),
+                        "actual_total": outcome.actual_total,
+                        "actual_win": outcome.actual_win,
+                        "predicted_total": output_payload.get("predicted_total"),
+                        "adjusted_win_prob": output_payload.get("win_prob"),
+                    }
+                )
+            return list(reversed(out))
+        except Exception:
+            pass
+
     if not OUTCOME_LOG_PATH.exists():
         return []
 

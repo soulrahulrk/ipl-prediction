@@ -119,6 +119,28 @@ the reason, while "other_player_dismissed" will show who was dismissed.
 Matches included in this archive
 --------------------------------
 
+2026-04-30 - club - IPL - male - 1529285 - Royal Challengers Bengaluru vs Gujarat Titans
+2026-04-29 - club - IPL - male - 1529284 - Mumbai Indians vs Sunrisers Hyderabad
+2026-04-28 - club - IPL - male - 1529283 - Punjab Kings vs Rajasthan Royals
+2026-04-27 - club - IPL - male - 1529282 - Delhi Capitals vs Royal Challengers Bengaluru
+2026-04-26 - club - IPL - male - 1529281 - Kolkata Knight Riders vs Lucknow Super Giants
+2026-04-26 - club - IPL - male - 1529280 - Chennai Super Kings vs Gujarat Titans
+2026-04-25 - club - IPL - male - 1529279 - Rajasthan Royals vs Sunrisers Hyderabad
+2026-04-25 - club - IPL - male - 1529278 - Delhi Capitals vs Punjab Kings
+2026-04-24 - club - IPL - male - 1529277 - Gujarat Titans vs Royal Challengers Bengaluru
+2026-04-23 - club - IPL - male - 1529276 - Chennai Super Kings vs Mumbai Indians
+2026-04-22 - club - IPL - male - 1529275 - Rajasthan Royals vs Lucknow Super Giants
+2026-04-21 - club - IPL - male - 1529274 - Sunrisers Hyderabad vs Delhi Capitals
+2026-04-20 - club - IPL - male - 1529273 - Mumbai Indians vs Gujarat Titans
+2026-04-19 - club - IPL - male - 1529272 - Punjab Kings vs Lucknow Super Giants
+2026-04-19 - club - IPL - male - 1529271 - Rajasthan Royals vs Kolkata Knight Riders
+2026-04-18 - club - IPL - male - 1529270 - Sunrisers Hyderabad vs Chennai Super Kings
+2026-04-18 - club - IPL - male - 1529269 - Royal Challengers Bengaluru vs Delhi Capitals
+2026-04-17 - club - IPL - male - 1529268 - Kolkata Knight Riders vs Gujarat Titans
+2026-04-16 - club - IPL - male - 1529267 - Mumbai Indians vs Punjab Kings
+2026-04-15 - club - IPL - male - 1529266 - Lucknow Super Giants vs Royal Challengers Bengaluru
+2026-04-14 - club - IPL - male - 1529265 - Chennai Super Kings vs Kolkata Knight Riders
+2026-04-13 - club - IPL - male - 1529264 - Sunrisers Hyderabad vs Rajasthan Royals
 2026-04-12 - club - IPL - male - 1527693 - Royal Challengers Bengaluru vs Mumbai Indians
 2026-04-12 - club - IPL - male - 1527692 - Lucknow Super Giants vs Gujarat Titans
 2026-04-11 - club - IPL - male - 1527691 - Chennai Super Kings vs Delhi Capitals

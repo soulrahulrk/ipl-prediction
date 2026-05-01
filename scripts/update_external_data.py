@@ -23,10 +23,34 @@ def download_latest_cricsheet_csv2() -> None:
     target_dir.mkdir(parents=True, exist_ok=True)
 
     print("Downloading latest IPL CSV2 archive from Cricsheet...")
-    with urllib.request.urlopen(CRICSHEET_IPL_CSV2_URL, timeout=60) as resp:
-        if resp.status != 200:
-            raise RuntimeError(f"Failed to download Cricsheet archive: HTTP {resp.status}")
-        payload = resp.read()
+    req = urllib.request.Request(
+        CRICSHEET_IPL_CSV2_URL,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/zip, application/octet-stream, */*",
+            "Accept-Encoding": "identity",
+        },
+    )
+
+    last_exc: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                if resp.status != 200:
+                    raise RuntimeError(f"HTTP {resp.status}")
+                payload = resp.read()
+            break
+        except Exception as exc:
+            last_exc = exc
+            print(f"  Attempt {attempt} failed: {exc}. Retrying...")
+            import time as _time
+            _time.sleep(3 * attempt)
+    else:
+        raise RuntimeError(f"Failed to download Cricsheet archive after 3 attempts: {last_exc}")
 
     print("Extracting archive into data/ipl_csv2 ...")
     with zipfile.ZipFile(io.BytesIO(payload)) as zf:

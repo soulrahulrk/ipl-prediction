@@ -264,14 +264,67 @@ def coerce_float(value: Any, default: float | None = None) -> float | None:
     return float(value)
 
 
+def _patch_model(model) -> None:
+    """Fix SimpleImputer statistics_ dtype=object mismatch from sklearn version changes."""
+    from sklearn.impute import SimpleImputer
+
+    seen: set[int] = set()
+
+    def _walk(obj) -> None:
+        if id(obj) in seen:
+            return
+        seen.add(id(obj))
+
+        if isinstance(obj, SimpleImputer):
+            if hasattr(obj, "statistics_") and obj.statistics_ is not None:
+                if obj.statistics_.dtype == object:
+                    try:
+                        obj.statistics_ = obj.statistics_.astype(float)
+                    except (ValueError, TypeError):
+                        pass  # categorical imputer — string fill values are correct
+            return
+
+        # Pipeline: .steps list of (name, estimator)
+        if hasattr(obj, "steps"):
+            for _, step in obj.steps:
+                _walk(step)
+
+        # ColumnTransformer: fitted .named_transformers_ dict or .transformers_ list
+        if hasattr(obj, "named_transformers_"):
+            for step in obj.named_transformers_.values():
+                _walk(step)
+        elif hasattr(obj, "transformers_"):
+            for _, step, _ in obj.transformers_:
+                _walk(step)
+
+        # CalibratedClassifierCV: .calibrated_classifiers_ list
+        if hasattr(obj, "calibrated_classifiers_"):
+            for cc in obj.calibrated_classifiers_:
+                _walk(cc)
+
+        # _CalibratedClassifier: .estimator
+        if hasattr(obj, "estimator") and obj.estimator is not None:
+            _walk(obj.estimator)
+
+    _walk(model)
+
+
 def load_models():
-    return joblib.load(SCORE_MODEL_PATH), joblib.load(WIN_MODEL_PATH)
+    score_model = joblib.load(SCORE_MODEL_PATH)
+    win_model = joblib.load(WIN_MODEL_PATH)
+    _patch_model(score_model)
+    _patch_model(win_model)
+    return score_model, win_model
 
 
 def load_pre_match_models():
     if not PRE_MATCH_SCORE_MODEL_PATH.exists() or not PRE_MATCH_WIN_MODEL_PATH.exists():
         return None, None
-    return joblib.load(PRE_MATCH_SCORE_MODEL_PATH), joblib.load(PRE_MATCH_WIN_MODEL_PATH)
+    score_model = joblib.load(PRE_MATCH_SCORE_MODEL_PATH)
+    win_model = joblib.load(PRE_MATCH_WIN_MODEL_PATH)
+    _patch_model(score_model)
+    _patch_model(win_model)
+    return score_model, win_model
 
 
 def load_score_uncertainty_profile() -> dict[str, float]:

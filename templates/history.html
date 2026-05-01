@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prediction History - IPL Predictor</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <h1>Your prediction history</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Created</th>
+            <th>Teams</th>
+            <th>Predicted total</th>
+            <th>Win prob</th>
+            <th>Outcome linked</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in predictions %}
+          <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.created_at }}</td>
+            <td>{{ p.input_payload.get('batting_team', '-') }} vs {{ p.input_payload.get('bowling_team', '-') }}</td>
+            <td>{{ p.output_payload.get('predicted_total', '-') }}</td>
+            <td>{{ p.output_payload.get('win_prob_pct', '-') }}</td>
+            <td>{{ 'yes' if p.outcome else 'no' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
